@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚌 CORDIS - Servis Takip Sistemi
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.1.0+-blue.svg)](https://flutter.dev/)
@@ -274,3 +275,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 ---
 
 ⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
+=======
+# CorDis-Servis-Takip-Uygulama
+Flutter ile geliştirilmiş servis takip uygulaması. Sürücüler ve yolcular için gerçek zamanlı konum takibi, rota optimizasyonu ve mesajlaşma özellikleri içerir.
+>>>>>>> ea57ba62acde921a37f615db75d57222a38b42c4
