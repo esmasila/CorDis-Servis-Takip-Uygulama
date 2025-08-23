@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 🚌 CORDIS - Servis Takip Sistemi
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.1.0+-blue.svg)](https://flutter.dev/)
