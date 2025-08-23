@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>$(DEVELOPMENT_LANGUAGE)</string>
+  <key>CFBundleDisplayName</key>
+  <string>CORDİS</string>
+  <key>CFBundleExecutable</key>
+  <string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleIdentifier</key>
+  <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>cordis</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$(FLUTTER_BUILD_NAME)</string>
+  <key>CFBundleSignature</key>
+  <string>????</string>
+  <key>CFBundleVersion</key>
+  <string>$(FLUTTER_BUILD_NUMBER)</string>
+  <key>LSRequiresIPhoneOS</key>
+  <true/>
+
+  <!-- Arayüz ve yönler -->
+  <key>UILaunchStoryboardName</key>
+  <string>LaunchScreen</string>
+  <key>UIMainStoryboardFile</key>
+  <string>Main</string>
+  <key>UISupportedInterfaceOrientations</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+  </array>
+  <key>UISupportedInterfaceOrientations~ipad</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+  </array>
+
+  <!-- Performans -->
+  <key>CADisableMinimumFrameDurationOnPhone</key>
+  <true/>
+  <key>UIApplicationSupportsIndirectInputEvents</key>
+  <true/>
+
+  <!-- Konum izinleri -->
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>Haritada servisi ve durakları göstermek için konumuna ihtiyaç var.</string>
+  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+  <string>Servis hareketini arka planda takip etmek için konumuna erişim gerekir.</string>
+
+  <!-- (Eski) Always açıklaması kalabilir ama gerekli değil -->
+  <key>NSLocationAlwaysUsageDescription</key>
+  <string>Uygulama, servis güzergahı ve konum takibi için arka planda konumunuza erişmek istiyor.</string>
+
+  <!-- Medya/Diğer izinler (mevcutları korudum) -->
+  <key>NSCameraUsageDescription</key>
+  <string>Profil fotoğrafınızı yükleyebilmeniz için kamera erişimine ihtiyaç var.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>Profil fotoğrafınızı seçebilmeniz için fotoğraf galerisine erişim gereklidir.</string>
+  <key>NSPhotoLibraryAddUsageDescription</key>
+  <string>Uygulama, çektiğiniz fotoğrafları galerinize kaydedebilmek için izin ister.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Uygulama, sesli bildirimler veya iletişim için mikrofon erişimine ihtiyaç duyabilir.</string>
+  <key>NSBluetoothAlwaysUsageDescription</key>
+  <string>Bluetooth ile cihaz bağlantısı için izin gereklidir.</string>
+
+  <!-- Arka plan modları -->
+  <key>UIBackgroundModes</key>
+  <array>
+    <string>location</string>
+    <string>processing</string>
+  </array>
+
+  <!-- (Opsiyonel açıklama) -->
+  <key>NSUserTrackingUsageDescription</key>
+  <string>Bildirim ve deneyimi iyileştirmek için sınırlı izinler isteyebiliriz.</string>
+</dict>
+</plist>

@@ -1,0 +1,704 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../widget/snackbar.dart';
+import '../service/enhanced_stop_management_service.dart';
+import '../utils/app_colors.dart';
+class StopManagementScreen extends StatefulWidget {
+  const StopManagementScreen({super.key});
+  @override
+  State<StopManagementScreen> createState() => _StopManagementScreenState();
+}
+class _StopManagementScreenState extends State<StopManagementScreen> {
+  String? _selectedRegionId;
+  List<Map<String, dynamic>> _regions = [];
+  @override
+  void initState() {
+    super.initState();
+    _loadRegions();
+  }
+  void _loadRegions() async {
+    try {
+      print('🔍 Bölgeler yükleniyor...');
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('regions')
+          .orderBy('name')
+          .get();
+      final regions = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+      print('📊 Toplam bölge sayısı: ${regions.length}');
+      print('\n--- BÖLGE LİSTESİ ---');
+      for (var region in regions) {
+        print('Bölge ID: ${region['id']} - İsim: ${region['name']}');
+      }
+      print('---\n');
+      setState(() {
+        _regions = regions;
+      });
+    } catch (e) {
+      print('Bölgeleri yükleme hatası: $e');
+    }
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Otomatik Duraklar'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            try {
+              Navigator.of(context).pop();
+            } catch (e) {
+              showSnackBar(
+                text: 'Geri gitme hatası: $e',
+                backgroundColor: Colors.red,
+              );
+            }
+          },
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              print('🔄 Duraklar manuel olarak yenileniyor...');
+              setState(() {
+              });
+            },
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Durakları Yenile',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('regions')
+                  .orderBy('name')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Text('Hata: ${snapshot.error}');
+                }
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+                return DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Bölge Filtresi',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: _selectedRegionId,
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Tüm Bölgeler'),
+                    ),
+                    ...snapshot.data!.docs.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return DropdownMenuItem(
+                        value: doc.id,
+                        child: Text(data['name'] ?? '—'),
+                      );
+                    }),
+                  ],
+                  onChanged: (val) {
+                    print('🔄 Bölge seçimi değişti: $val');
+                    setState(() {
+                      _selectedRegionId = val;
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: _buildAutoStopsTab(),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildAutoStopsTab() {
+    print('🔄 Durak listesi yenileniyor - Seçili bölge: $_selectedRegionId');
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _selectedRegionId != null
+          ? EnhancedStopManagementService.getStopsForRegion(_selectedRegionId!)
+          : _getAllStops(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Hata: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final allStops = snapshot.data!;
+        if (allStops.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.auto_awesome,
+                  size: 64,
+                  color: AppColors.textDark,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Henüz durak bulunmuyor.',
+                  style: TextStyle(fontSize: 16, color: AppColors.textDark),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Yolcular adres girdiğinde duraklar oluşturulacak.',
+                  style: TextStyle(fontSize: 14, color: AppColors.textDark),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          itemCount: allStops.length,
+          itemBuilder: (context, index) {
+            final stop = allStops[index];
+            final stopId = stop['id'] as String;
+            final source = stop['source'] as String?;
+            final createdFromMap = stop['createdFromMap'] == true;
+            final isMapSelection = source == 'map_selection' || createdFromMap;
+            final isAutoGenerated = stop['isAutoGenerated'] == true;
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: ExpansionTile(
+                leading: Icon(
+                  isMapSelection ? Icons.map : Icons.auto_awesome,
+                  color: stop['isActive'] == true
+                      ? (isMapSelection
+                          ? Colors.blue.shade700
+                          : Colors.green.shade700)
+                      : Colors.grey,
+                  size: 32,
+                ),
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        stop['name'] ?? 'İsimsiz Durak',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isMapSelection
+                            ? Colors.blue
+                            : (isAutoGenerated ? Colors.green : Colors.orange),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        isMapSelection
+                            ? 'Harita'
+                            : (isAutoGenerated ? 'Otomatik' : 'Manuel'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Adres: ${stop['address'] ?? 'Belirtilmemiş'}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                    Text(
+                        'Yolcu Sayısı: ${(stop['passengerIds'] as List?)?.length ?? 0}'),
+                    Text(
+                        'Durum: ${stop['isActive'] == true ? 'Aktif' : 'Pasif'}'),
+                    if (isMapSelection)
+                      Text(
+                        'Kaynak: Harita Seçimi',
+                        style: TextStyle(
+                          color: Colors.blue.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    Text(
+                      'Koleksiyon: Enhanced',
+                      style: TextStyle(
+                        color: AppColors.textDark,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isMapSelection) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info,
+                                    color: Colors.blue.shade600, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Bu durak yolcu tarafından harita üzerinden seçilerek oluşturulmuştur.',
+                                    style: TextStyle(
+                                      color: Colors.blue.shade700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        _buildDetailRow(Icons.location_on, 'Koordinat',
+                            '${stop['latitude']?.toStringAsFixed(6) ?? 'N/A'}, ${stop['longitude']?.toStringAsFixed(6) ?? 'N/A'}'),
+                        if (stop['originalAddress'] != null)
+                          _buildDetailRow(Icons.home, 'Orijinal Adres',
+                              stop['originalAddress']),
+                        if (stop['distanceFromOriginal'] != null)
+                          _buildDetailRow(Icons.straighten, 'Orijinal Mesafe',
+                              '${(stop['distanceFromOriginal'] as num).toStringAsFixed(0)} metre'),
+                        if (stop['isMainRoad'] == true)
+                          _buildDetailRow(Icons.directions_car, 'Konum',
+                              'Ana yol üzerinde'),
+                        if (stop['totalVisits'] != null &&
+                            stop['totalVisits'] > 0)
+                          _buildDetailRow(Icons.history, 'Toplam Ziyaret',
+                              '${stop['totalVisits']} kez'),
+                        if (stop['averageWaitTime'] != null &&
+                            stop['averageWaitTime'] > 0)
+                          _buildDetailRow(Icons.timer, 'Ortalama Bekleme',
+                              '${(stop['averageWaitTime'] as num).toStringAsFixed(1)} dakika'),
+                        if (stop['createdBy'] != null && isMapSelection)
+                          FutureBuilder<String>(
+                            future: _getPassengerName(stop['createdBy']),
+                            builder: (context, snapshot) {
+                              final passengerName =
+                                  snapshot.data ?? 'Yükleniyor...';
+                              return _buildDetailRow(
+                                  Icons.person_add, 'Oluşturan', passengerName);
+                            },
+                          ),
+                        const SizedBox(height: 16),
+                        if (stop['passengerIds'] != null &&
+                            (stop['passengerIds'] as List).isNotEmpty) ...[
+                          const Text(
+                            'Bu Durağı Kullanan Yolcular:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: AppColors.textDark),
+                          ),
+                          const SizedBox(height: 8),
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                            future: _getPassengerDetails(
+                                List<String>.from(stop['passengerIds'])),
+                            builder: (context, passengerSnapshot) {
+                              if (!passengerSnapshot.hasData) {
+                                return const CircularProgressIndicator();
+                              }
+                              return Column(
+                                children: passengerSnapshot.data!
+                                    .map(
+                                      (passenger) => Container(
+                                        margin:
+                                            const EdgeInsets.only(bottom: 8),
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.person,
+                                                size: 20, color: Colors.blue),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    passenger['name'] ??
+                                                        'İsimsiz',
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 14,
+                                                      color: AppColors.textDark,
+                                                    ),
+                                                  ),
+                                                  if (passenger['address'] !=
+                                                      null)
+                                                    Text(
+                                                      passenger['address'],
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color:
+                                                            AppColors.textDark,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      maxLines: 2,
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              );
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () => _showStopOnMap(stop),
+                              icon: const Icon(Icons.map, size: 16),
+                              label: const Text('Haritada Göster'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue.shade600,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () => _deleteStop(stopId, stop),
+                              icon: const Icon(Icons.delete, size: 16),
+                              label: const Text('Sil'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade600,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+  Future<List<Map<String, dynamic>>> _getAllStops() async {
+    try {
+      print('🔍 Tüm bölgelerdeki harita durakları getiriliyor...');
+      final col = FirebaseFirestore.instance.collection('enhanced_stops');
+      QuerySnapshot<Map<String, dynamic>> snap1;
+      try {
+        snap1 = await col
+            .where('isActive', isEqualTo: true)
+            .where('createdFromMap', isEqualTo: true)
+            .orderBy('createdAt', descending: true)
+            .get();
+      } catch (_) {
+        snap1 = await col
+            .where('isActive', isEqualTo: true)
+            .where('createdFromMap', isEqualTo: true)
+            .get();
+      }
+      QuerySnapshot<Map<String, dynamic>> snap2;
+      try {
+        snap2 = await col
+            .where('isActive', isEqualTo: true)
+            .where('source', isEqualTo: 'map_selection')
+            .orderBy('createdAt', descending: true)
+            .get();
+      } catch (_) {
+        snap2 = await col
+            .where('isActive', isEqualTo: true)
+            .where('source', isEqualTo: 'map_selection')
+            .get();
+      }
+      final Map<String, Map<String, dynamic>> byId = {};
+      for (final d in [...snap1.docs, ...snap2.docs]) {
+        final data = d.data();
+        data['id'] = d.id;
+        byId[d.id] = data;
+      }
+      var stops = byId.values.toList();
+      stops.sort((a, b) {
+        final ta = a['createdAt'];
+        final tb = b['createdAt'];
+        if (ta == null && tb == null) return 0;
+        if (ta == null) return 1;
+        if (tb == null) return -1;
+        return (tb as Timestamp).compareTo(ta as Timestamp);
+      });
+      print('📊 Toplam aktif harita durağı: ${stops.length}');
+      return stops;
+    } catch (e) {
+      print('Tüm durakları getirme hatası: $e');
+      return [];
+    }
+  }
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: AppColors.textDark),
+          const SizedBox(width: 8),
+          Text(
+            '$label: ',
+            style: const TextStyle(
+                fontWeight: FontWeight.w500, color: AppColors.textDark),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: AppColors.textDark),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  Future<List<Map<String, dynamic>>> _getPassengerDetails(
+      List<String> passengerIds) async {
+    final passengers = <Map<String, dynamic>>[];
+    for (final passengerId in passengerIds) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('passengers')
+            .doc(passengerId)
+            .get();
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          passengers.add({
+            'id': passengerId,
+            'name': data['name'],
+            'address': data['address'],
+          });
+        }
+      } catch (e) {
+        debugPrint('Yolcu detayı alınırken hata: $e');
+      }
+    }
+    return passengers;
+  }
+  Future<String> _getPassengerName(String passengerId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('passengers')
+          .doc(passengerId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['name'] ?? 'İsimsiz Yolcu';
+      } else {
+        return 'Yolcu Bulunamadı';
+      }
+    } catch (e) {
+      debugPrint('Yolcu ismi alınırken hata: $e');
+      return 'Hata: Yolcu ismi alınamadı';
+    }
+  }
+  Future<void> _deleteStop(String stopId, Map<String, dynamic> stop) async {
+    final source = stop['source'] as String?;
+    final isMapSelection = source == 'map_selection';
+    final isAutoGenerated = stop['isAutoGenerated'] == true;
+    String stopType;
+    if (isMapSelection) {
+      stopType = 'harita seçimi';
+    } else if (isAutoGenerated) {
+      stopType = 'otomatik oluşturulan';
+    } else {
+      stopType = 'manuel';
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Durağı Sil'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bu $stopType durağını silmek istediğinizden emin misiniz?'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Durak: ${stop['name'] ?? 'İsimsiz Durak'}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text('Adres: ${stop['address'] ?? 'Belirtilmemiş'}'),
+                  Text(
+                      'Yolcu Sayısı: ${(stop['passengerIds'] as List?)?.length ?? 0}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Bu işlem geri alınamaz!',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Sil', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('enhanced_stops')
+            .doc(stopId)
+            .update({
+          'isActive': false,
+          'deletedAt': FieldValue.serverTimestamp(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Durak başarıyla silindi'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          setState(() {});
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Durak silinirken hata oluştu: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+  Future<void> _deleteMapStop(String stopId, bool isSimpleStop) async {
+    final stop = {
+      'source': 'map_selection',
+      'name': 'Harita Durağı',
+      'address': '',
+      'passengerIds': []
+    };
+    await _deleteStop(stopId, stop);
+  }
+  void _showStopOnMap(Map<String, dynamic> stop) {
+    final latitude = stop['latitude'] as double?;
+    final longitude = stop['longitude'] as double?;
+    if (latitude != null && longitude != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StopMapViewScreen(
+            latitude: latitude,
+            longitude: longitude,
+            stopName: stop['name'] ?? 'İsimsiz Durak',
+            stopAddress: stop['address'] ?? 'Adres belirtilmemiş',
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Durak koordinatları bulunamadı'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+class StopMapViewScreen extends StatelessWidget {
+  final double latitude;
+  final double longitude;
+  final String stopName;
+  final String stopAddress;
+  const StopMapViewScreen({
+    super.key,
+    required this.latitude,
+    required this.longitude,
+    required this.stopName,
+    required this.stopAddress,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(stopName),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+      ),
+      body: GoogleMap(
+        initialCameraPosition: CameraPosition(
+          target: LatLng(latitude, longitude),
+          zoom: 16,
+        ),
+        markers: {
+          Marker(
+            markerId: const MarkerId('stop'),
+            position: LatLng(latitude, longitude),
+            infoWindow: InfoWindow(
+              title: stopName,
+              snippet: stopAddress,
+            ),
+          ),
+        },
+      ),
+    );
+  }
+}

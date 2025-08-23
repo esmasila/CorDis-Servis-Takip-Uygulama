@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ sistem splash ekranı için özel tema -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <!-- Splash arka plan rengi -->
+        <item name="android:windowSplashScreenBackground">#2CB3FF</item>
+        <!-- Splash'ta gösterilecek ikon (uygulama ikonu) -->
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <!-- İkonun arkasındaki cihaz şekli (daire/kare) rengini kaldır -->
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <!-- Not: postSplashScreenTheme kullanmadık; Flutter NormalTheme meta-data'sı devralınır. -->
+    </style>
+
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+</resources>
+
+

@@ -1,0 +1,79 @@
+name: cordis
+description: CORDİS - Servis Takip Sistemi
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.0
+  cloud_firestore: ^6.0.0
+  firebase_storage: ^13.0.0
+  firebase_messaging: ^16.0.0
+  google_maps_flutter: ^2.12.3
+  geolocator: ^14.0.2
+  location: ^8.0.1
+  http: ^1.4.0
+  geocoding: ^4.0.0
+  intl: ^0.20.2
+  shared_preferences: ^2.5.3
+  image_picker: ^1.1.2
+  file_picker: ^10.2.0
+  package_info_plus: ^8.3.0
+  flutter_background_service: ^5.1.0
+  flutter_background_service_android: ^6.3.1
+  permission_handler: ^12.0.1
+  flutter_local_notifications: ^19.4.0
+  workmanager: ^0.8.0
+  flutter_polyline_points: ^3.0.1
+  google_directions_api: ^0.10.0
+  google_route_optimization_api: ^1.0.0
+  maps_toolkit: ^3.1.0
+  collection: ^1.19.1
+  tuple: ^2.0.2
+  flutter_map: ^8.2.1
+  latlong2: ^0.9.1
+  dio: ^5.8.0+1
+  uuid: ^4.5.1
+  rxdart: ^0.28.0
+  turf: ^0.0.10
+  provider: ^6.1.5
+  url_launcher: ^6.3.1
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.0.10+1
+  flutter_tts: ^3.8.5
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/cordis_logo_new.jpg
+    - assets/cordis_logo_new2.jpg
+
+
+flutter_launcher_icons:
+  image_path: assets/cordis_logo_new2.jpg
+  android: true
+  ios: true
+  web:
+    generate: true
+    image_path: assets/cordis_logo_new2.jpg
+    background_color: "#2CB3FF"
+    theme_color: "#2CB3FF"
+  macos:
+    generate: true
+    image_path: assets/cordis_logo_new2.jpg
+  windows:
+    generate: true
+    image_path: assets/cordis_logo_new2.jpg

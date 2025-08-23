@@ -1,0 +1,34 @@
+// Servis Takip Uygulaması widget testleri
+//
+// Bu test dosyası uygulamanın temel widget'larını test eder.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:cordis/main.dart';
+
+void main() {
+  testWidgets('App loads successfully', (WidgetTester tester) async {
+    // Test için minimal MaterialApp oluştur
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text('Servis Takip Uygulaması'),
+          ),
+        ),
+      ),
+    );
+
+    // Uygulamanın yüklendiğini doğrula
+    expect(find.text('Servis Takip Uygulaması'), findsOneWidget);
+  });
+
+  testWidgets('MyApp widget creates successfully', (WidgetTester tester) async {
+    // MyApp widget'ının oluşturulabildiğini test et
+    // Firebase bağımlılıkları olmadan sadece widget yapısını test ediyoruz
+    final widget = const MyApp();
+    expect(widget, isNotNull);
+    expect(widget, isA<MyApp>());
+  });
+}

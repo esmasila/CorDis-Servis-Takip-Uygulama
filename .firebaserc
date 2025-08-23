@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "servis-takip-uygulama",
+    "servis takip uygulama": "servis-takip-uygulama"
+  },
+  "targets": {},
+  "etags": {}
+}

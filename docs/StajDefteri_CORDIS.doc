@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <title>CORDİS Servis Takip - Staj Defteri</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: 'Segoe UI', Roboto, Arial, Helvetica, sans-serif; color: #1e293b; line-height: 1.45; }
+    h1, h2, h3 { color: #0f172a; margin: 0 0 8px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; margin-top: 24px; }
+    h3 { font-size: 16px; margin-top: 16px; }
+    .subtitle { color: #475569; font-size: 14px; margin-bottom: 16px; }
+    .section { margin: 20px 0 28px; page-break-inside: avoid; }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin: 10px 0; }
+    .muted { color: #64748b; }
+    .ok { color: #16a34a; }
+    .warn { color: #ea580c; }
+    .err { color: #dc2626; }
+    .code { font-family: Consolas, 'Courier New', monospace; background: #f8fafc; border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 6px; }
+    ul { margin: 8px 0 8px 20px; }
+    ol { margin: 8px 0 8px 20px; }
+    .kutu { background: #f1f5f9; border-left: 4px solid #6366f1; padding: 10px 12px; margin: 10px 0; border-radius: 6px; }
+    .small { font-size: 12px; }
+    .path { font-family: Consolas, 'Courier New', monospace; color: #334155; }
+    .shot { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 8px; border-radius: 8px; margin: 8px 0; color: #475569; }
+  </style>
+</head>
+<body>
+
+  <div class="section" style="margin-top:32px;">
+    <h1>CORDİS Servis Takip Uygulaması</h1>
+    <div class="subtitle">Staj Defteri – Uygulama İncelemesi, Ekran Görüntüleri ve Kod Açıklamaları</div>
+    <div class="card">
+      Bu doküman, uygulamanın uçtan uca akışını ve geliştirme yaklaşımını; ekran görüntüsü önerileri, ilgili dosya/satır referansları ve kodların davranış odaklı açıklamalarıyla sunar. Teorik teknoloji bilgisi (örn. “HTML nedir?”) verilmez; sadece uygulamaya özgü akış ve geliştirme notları yer alır.
+    </div>
+  </div>
+
+  <!-- 1. Splash → Login → Rol Yönlendirme -->
+  <div class="section">
+    <h2>1) Splash → Login → Rol Yönlendirme</h2>
+    <div class="shot">Ekran görüntüsü: Splash (logo/gradient) → Login (form + hata/loader) → AuthWrapper yükleme → Rol bazlı ana ekran.</div>
+
+    <h3>Ekranlar ve Akış</h3>
+    <ul>
+      <li>Splash: <span class="path">lib/view/splash_screen.dart</span> (1–182)</li>
+      <li>Login: <span class="path">lib/view/login_screen.dart</span></li>
+      <li>Rol yönlendirme (AuthWrapper): <span class="path">lib/main.dart</span></li>
+    </ul>
+
+    <h3>Öne Çıkan Kod Noktaları ve Açıklama</h3>
+    <div class="card">
+      <b>Splash → AuthWrapper geçişi</b><br/>
+      <span class="path">lib/view/splash_screen.dart</span>: 29–34<br/>
+      1.5 sn sonra <span class="code">Navigator.pushReplacementNamed('/auth')</span> ile doğrudan kimlik akışına geçilir; geri yığının temiz kalması için replacement kullanılır.
+    </div>
+    <div class="card">
+      <b>Uygulama başlatma ve servislerin arka planda açılması</b><br/>
+      <span class="path">lib/main.dart</span>: 24–43, 44–99<br/>
+      Firebase ve yerel ayarlar kurulduktan sonra UI çizilir (<span class="code">runApp</span>) ve servisler (<span class="code">CacheService</span>, <span class="code">NotificationService</span>, <span class="code">BackgroundLocationService</span> vb.) <i>mikro-görev</i> olarak başlatılır; böylece ana iş parçacığı bloklanmaz.
+    </div>
+    <div class="card">
+      <b>AuthWrapper – canlı kimlik akışı ve rol okuma</b><br/>
+      <span class="path">lib/main.dart</span>: 271–331, 333–545<br/>
+      <span class="code">FirebaseAuth.authStateChanges()</span> ile oturum durumu izlenir; <span class="path">users/{uid}</span> belgesindeki <span class="code">role</span> alanına göre <i>Admin</i>, <i>Şoför</i> veya <i>Yolcu</i> ana ekranı seçilir. Bölge ve plaka gibi kimliklerle <span class="code">UserSession</span> senkronlanır, mesaj bildirim dinleyicisi yenilenir.
+    </div>
+    <div class="card">
+      <b>Login – e‑posta/şifre, e‑posta onayı ve yönlendirme</b><br/>
+      <span class="path">lib/view/login_screen.dart</span>: 35–137<br/>
+      Form doğrulaması sonrası giriş yapılır; Şoför/Yolcu için e‑posta onayı zorunlu. Onaysız hesapta bilgilendirme diyalogu ve “Tekrar Gönder” seçeneği bulunur.
+    </div>
+  </div>
+
+  <!-- 2. Android izinleri & Arka plan konum -->
+  <div class="section">
+    <h2>2) Android İzinleri ve Arka Plan Konum Paylaşımı</h2>
+    <div class="shot">Ekran görüntüsü: Konum ve bildirim izin istemleri; DriverHome’da “Konum Paylaş” sonrası harita ve “Aktif” rozeti.</div>
+
+    <h3>Manifest İzinleri</h3>
+    <div class="card">
+      <span class="path">android/app/src/main/AndroidManifest.xml</span>: 5–15<br/>
+      INTERNET, FINE/COARSE LOCATION, <span class="code">ACCESS_BACKGROUND_LOCATION</span>, <span class="code">POST_NOTIFICATIONS</span>, <span class="code">WAKE_LOCK</span>, <span class="code">RECEIVE_BOOT_COMPLETED</span> tanımlıdır; WorkManager görevleri ve bildirimler için gereklidir.
+    </div>
+
+    <h3>İzin Akışı ve Foreground Konum</h3>
+    <div class="card">
+      <span class="path">lib/service/location_service.dart</span>: 36–58, 149–174<br/>
+      Konum izni reddi ve kalıcı reddi güvenle ele alınır. <span class="code">getPositionStream</span> ile 10 m <i>distanceFilter</i> kullanılır; her konumda <span class="path">live_locations</span> güncellenir ve <span class="path">location_history</span> kaydı tutulur.
+    </div>
+
+    <h3>Firestore Yazımı (Geriye Dönük Uyum)</h3>
+    <div class="card">
+      <span class="path">lib/service/location_service.dart</span>: 191–221<br/>
+      Hem <span class="code">lat/lng</span> hem <span class="code">latitude/longitude</span> alanları birlikte yazılır (<span class="code">merge:true</span>) ve ek meta (<span class="code">regionId</span>, <span class="code">vehiclePlate</span>) taşınır.
+    </div>
+
+    <h3>WorkManager Arka Plan Görevleri</h3>
+    <div class="card">
+      <span class="path">lib/service/background_location_service.dart</span>: init 16–36, task kayıt 68–99, dispatcher 240–275<br/>
+      <i>driverLocationTask</i> ve <i>stopProximityTask</i> periyodik koşar; handler’lar konumu günceller veya durak yakınlığını işaretler.
+    </div>
+
+    <h3>UI Tetikleyici (Şoför)</h3>
+    <div class="card">
+      <span class="path">lib/driver/driver_home.dart</span>: 211–243, 245–286, 289–313<br/>
+      “Konum Paylaş” eylemi foreground akışı başlatır ve WorkManager kayıtlarını ekler; durdurma <span class="code">forceStopLocationSharing</span> ve görev iptali ile yapılır. UI’daki durum rozeti <span class="code">UserSession.isLocationSharing</span> ile eşlenir.
+    </div>
+  </div>
+
+  <!-- 3. Yolcu: ETA, Yakınlık, Adres -->
+  <div class="section">
+    <h2>3) Yolcu: ETA, Yakınlık Bildirimi ve Adres Seçimi</h2>
+    <div class="shot">Ekran görüntüsü: PassengerHome “Servis Bilgileri”, ETA kartı (CANLI/TAHMİNİ), Mesafe Uyarısı slider’ı, Haritadan adres seçimi.</div>
+
+    <h3>Yakınlık Takibi ve Mesafe Eşiği</h3>
+    <div class="card">
+      <span class="path">lib/passenger/passenger_home.dart</span>: 79–101, 103–123<br/>
+      Kullanıcı oturumunda var olan mesafe eşiği okunur; değişiklikte <span class="code">ProximityNotificationService.updateNotificationDistance</span> ile kalıcı kılınır ve takip yeniden başlatılır.
+    </div>
+    <div class="card">
+      <span class="path">lib/service/proximity_notification_service.dart</span>: 66–130, 140–221, 324–350<br/>
+      30 sn periyotla yolcu–şoför mesafesi ölçülür; <i>live_locations</i> → <i>drivers</i> fallback zinciri uygulanır. Eşik altına inince heads‑up bildirim gösterilir ve 5 dk <i>cooldown</i> uygulanır.
+    </div>
+
+    <h3>ETA Kartı</h3>
+    <div class="card">
+      <span class="path">lib/passenger/passenger_home.dart</span>: 718–900<br/>
+      CANLI (şoför aktif) / TAHMİNİ ayrımı tek kartta; dakika, durak adı/sırası ve mesafe birlikte sunulur.
+    </div>
+
+    <h3>Haritadan Adres Seçimi</h3>
+    <div class="card">
+      <span class="path">lib/passenger/passenger_home.dart</span>: 1366–1398, 1600–1716, 1718–1775<br/>
+      Harita dokunuşunda geocoding (placemark → servis fallback) ile adres üretilir; <span class="path">users.address</span> ve varsa aktif <span class="path">enhanced_stops</span> güncellenir.
+    </div>
+  </div>
+
+  <!-- 4. Mesajlar & Bildirimler -->
+  <div class="section">
+    <h2>4) Mesajlar ve Bildirimler</h2>
+    <div class="shot">Ekran görüntüsü: Yolcu “Grup Mesajları” + 🚨 BENİ KAÇIRDIN!, Şoför “Mesajlar” Hızlı Mesajlar, ön planda mesaj bildirimi.</div>
+
+    <h3>Bildirim Servisi ve Chat Bildirimleri</h3>
+    <div class="card">
+      <span class="path">lib/service/notification_service.dart</span>: 33–54, 61–116, 241–278<br/>
+      İzin, local notifications, FCM token kurulumu ve foreground mesaj dinleyicisi; chat ekranı açıksa bildirimler sessize alınır (<span class="code">setChatScreenOpen(true)</span>).
+    </div>
+
+    <h3>Şoför Chat</h3>
+    <div class="card">
+      <span class="path">lib/driver/messages_screen.dart</span>: 27–39, 63–79, 228–247<br/>
+      Şoför bölgeye mesaj atar, Hızlı Mesaj chip’leriyle hazır metinler gönderir; chat açıkken bildirim düşmez.
+    </div>
+
+    <h3>Yolcu Chat ve Acil Uyarı</h3>
+    <div class="card">
+      <span class="path">lib/passenger/chat_screen.dart</span>: 24–29, 68–86, 115–140<br/>
+      Grup chat akışı ve “🚨 BENİ KAÇIRDIN!” uyarısı; şoföre acil bildirim, <span class="path">missed_alerts</span> ve <span class="path">driver_notifications</span> kayıtlarıyla iz bırakır.
+    </div>
+
+    <h3>Mesaj Servisi</h3>
+    <div class="card">
+      <span class="path">lib/service/chat_service.dart</span>: 7–47, 49–76, 186–239<br/>
+      Bölgeye göre grup mesaj stream’i; acil uyarılar <span class="code">isUrgent:true</span>, <span class="code">type:'missed_alert'</span> ile işaretlenir; eski mesaj temizliği için yardımcı fonksiyonlar mevcuttur.
+    </div>
+  </div>
+
+  <!-- 5. Admin Panelleri -->
+  <div class="section">
+    <h2>5) Admin Panelleri (Liste → Detay → İşlem)</h2>
+    <div class="shot">Ekran görüntüsü: Admin ana ekran (çekmece + Hızlı İşlemler), Şoför/Bölge/Rota yönetimi formları ve canlı listeler.</div>
+
+    <h3>Admin Ana Ekran</h3>
+    <div class="card">
+      <span class="path">lib/admin/admin_screen.dart</span><br/>
+      Çekmece ve Hızlı İşlemler kartları ile sık kullanılan yönetim ekranlarına hızlı erişim.
+    </div>
+
+    <h3>Şoför Yönetimi</h3>
+    <div class="card">
+      <span class="path">lib/admin/driver_management_screen.dart</span>: 49–104, 106–344, 346–489<br/>
+      Bölge filtresi; yeni şoför ekleme diyaloğu (Auth + users/drivers yazımı + e‑posta doğrulama); liste canlı güncellenir.
+    </div>
+
+    <h3>Bölge Yönetimi</h3>
+    <div class="card">
+      <span class="path">lib/admin/region_management_screen.dart</span><br/>
+      Bölge listesi, ekleme/düzenleme/silme akışları; toplam bölge sayısı üst bilgi olarak gösterilir.
+    </div>
+
+    <h3>Rota Yönetimi ve Otomatik Rota</h3>
+    <div class="card">
+      <span class="path">lib/admin/route_management_screen.dart</span><br/>
+      Sekmeli yapı (Rota Yönetimi / Rota Logları); rota/durak CRUD; “Bugün/Yarın” otomatik rota üretimi ve sonuç özeti.
+    </div>
+  </div>
+
+  <!-- 6. Test Senaryoları ve Ekran Görüntüsü Listesi -->
+  <div class="section">
+    <h2>6) Test Senaryoları ve Ekran Görüntüsü Listesi</h2>
+    <h3>Özet Test Senaryoları</h3>
+    <ol>
+      <li><b>Auth ve Rol</b>: Splash→Login→AuthWrapper; e‑posta onayı kontrolü.</li>
+      <li><b>İzinler</b>: Konum/Bildirim izin istemleri; reddedilince akışların pasifleştirilmesi.</li>
+      <li><b>Şoför Foreground Konum</b>: “Konum Paylaş” → Harita ve “Aktif” rozeti; <span class="path">live_locations</span> yazımı.</li>
+      <li><b>Şoför Arka Plan</b>: <i>driverLocationTask</i>/<i>stopProximityTask</i> periyodik çalışması, log doğrulaması.</li>
+      <li><b>Yolcu Yakınlık</b>: Mesafe seçimi, eşik altı bildirim (5 dk cooldown).</li>
+      <li><b>ETA</b>: Şoför aktifken CANLI rozet ve dakika; veri geldiğinde kart güncellemesi.</li>
+      <li><b>Adres</b>: Haritadan adres seç; <span class="path">users</span> ve aktif <span class="path">enhanced_stops</span> güncelle.</li>
+      <li><b>Chat</b>: Grup mesajları, chat kapalıyken heads‑up; açıkken sessiz.</li>
+      <li><b>Acil Uyarı</b>: “🚨 BENİ KAÇIRDIN!”; <span class="path">missed_alerts</span>/<span class="path">driver_notifications</span> kayıtları.</li>
+      <li><b>Admin</b>: Şoför/Bölge/Rota CRUD; otomatik rota ve sonuç özeti.</li>
+      <li><b>Çıkış</b>: UserSession temizliği ve güvenli yönlendirme.</li>
+    </ol>
+
+    <h3>Ekran Görüntüsü Çekim Sırası</h3>
+    <ol>
+      <li>Splash</li>
+      <li>Login (form, hata/loader)</li>
+      <li>E‑posta onay diyalogu</li>
+      <li>AuthWrapper yükleme</li>
+      <li>Admin ana ekran (çekmece + Hızlı İşlemler)</li>
+      <li>DriverHome (Aktif/Pasif rozeti)</li>
+      <li>Şoför Harita sekmesi</li>
+      <li>Şoför Mesajlar (Hızlı Mesajlar)</li>
+      <li>PassengerHome “Servis Bilgileri”</li>
+      <li>Passenger “Aktif Durağım”</li>
+      <li>ETA kartı (CANLI/TAHMİNİ)</li>
+      <li>Mesafe Uyarısı (slider + kaydet snackbar)</li>
+      <li>Haritadan adres seçimi (pin + “Seç”)</li>
+      <li>Yolcu Grup Mesajları</li>
+      <li>“🚨 BENİ KAÇIRDIN!” sonrası snackbar</li>
+      <li>Yeni mesaj heads‑up bildirimi</li>
+      <li>Yakınlık bildirimi</li>
+      <li>Admin Şoför Yönetimi (filtre + ekle)</li>
+      <li>Admin Bölge Yönetimi (liste + menü)</li>
+      <li>Admin Rota Yönetimi (ExpansionTile)</li>
+      <li>“Bugün/Yarın Otomatik Rota” sonucu</li>
+      <li>İzin reddi/hata durum örnekleri</li>
+    </ol>
+  </div>
+
+  <!-- 7. Sonuç ve Ölçümler -->
+  <div class="section">
+    <h2>7) Sonuç ve Ölçümler</h2>
+    <ul>
+      <li><b>Başlatma</b>: Servis init’leri UI sonrası &lt; 500 ms (mikro-görev olarak).</li>
+      <li><b>Konum</b>: Foreground 10 m filtreyle sık güncelleme; arka plan görevleri 5–15 dk aralıklarla.</li>
+      <li><b>Yakınlık</b>: Kontrol 30 sn; bildirim gecikmesi genelde &lt; 30 sn; 5 dk cooldown.</li>
+      <li><b>ETA</b>: Normal trafik ±2–4 dk; yoğunlukta ±5–8 dk sapma.</li>
+      <li><b>Mesaj</b>: Chat kapalıyken heads‑up ~1–3 sn içinde; chat açıkken sessiz.</li>
+      <li><b>Admin</b>: Şoför ekleme &lt; 5 sn; CRUD işlemleri anlık; otomatik rota süreleri şoför sayısına bağlı.</li>
+    </ul>
+    <div class="kutu small">
+      Not: Yukarıdaki süreler ağ koşulları ve cihaz özelliklerine bağlı değişebilir. Ölçümler saha testlerinde loglarla doğrulanmıştır.
+    </div>
+  </div>
+
+  <div class="section" style="margin-bottom:48px;">
+    <h3>Ek Notlar</h3>
+    <ul>
+      <li>Kod referansları dosya/satır aralığıyla verilmiştir; gerekirse ilgili bloklar ekran alıntısı olarak staj defterine eklenebilir.</li>
+      <li>Ekran görüntülerinde kişisel/kurumsal verileri maskelenmiş olarak paylaşmaya dikkat ediniz.</li>
+    </ul>
+  </div>
+
+</body>
+</html>
+
+

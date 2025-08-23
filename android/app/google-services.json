@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "283736871966",
+    "project_id": "servis-takip-uygulama",
+    "storage_bucket": "servis-takip-uygulama.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:283736871966:android:cf3f8ff89d360e55800a0f",
+        "android_client_info": {
+          "package_name": "com.example.servis_takip_uygulama"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7t0-yEER8KVruoUi5Msbqlo7bNh0WkM0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
