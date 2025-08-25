@@ -13,7 +13,7 @@ import 'region_live_tracking_screen.dart';
 import 'messages_management_screen.dart';
 import 'permissions_management_screen.dart';
 import 'notification_management_screen.dart';
-import '../utils/coordinate_fixer.dart';
+
 import '../utils/app_colors.dart';
 
 class AdminScreen extends StatelessWidget {
@@ -182,19 +182,6 @@ class AdminScreen extends StatelessWidget {
                               const ServiceAssignmentScreen(),
                             ),
                           ),
-                          _buildMenuItem(
-                            icon: Icons.auto_awesome,
-                            title: 'Otomatik Rota',
-                            subtitle:
-                                'Yolcu adreslerine göre otomatik hat oluşturma',
-                            onTap: () => _showAutoRouteInfo(context),
-                          ),
-                          _buildMenuItem(
-                            icon: Icons.gps_fixed,
-                            title: 'Koordinat Düzeltme',
-                            subtitle: 'Durak koordinatlarını otomatik düzelt',
-                            onTap: () => _showCoordinateFixDialog(context),
-                          ),
                           const Divider(height: 24, indent: 16, endIndent: 16),
                           _buildSectionHeader('İletişim & İzinler'),
                           _buildMenuItem(
@@ -255,7 +242,7 @@ class AdminScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Material(
-                    color: Colors.red.shade600,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
@@ -270,12 +257,12 @@ class AdminScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.red.shade50,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
                                 Icons.logout,
-                                color: Colors.white,
+                                color: Colors.red.shade600,
                                 size: 20,
                               ),
                             ),
@@ -285,7 +272,7 @@ class AdminScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.white,
+                                color: Colors.red.shade600,
                               ),
                             ),
                           ],
@@ -525,235 +512,6 @@ class AdminScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _showAutoRouteInfo(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.auto_awesome, color: Colors.blue, size: 20),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Otomatik Rota Sistemi',
-                style: TextStyle(fontSize: 16),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Otomatik rota sistemi şu özellikleri sağlar:',
-                style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                    color: AppColors.textDark),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                '• Yolcu adresleri otomatik olarak ana yol üzerindeki duraklara dönüştürülür',
-                style: TextStyle(fontSize: 12, color: AppColors.textDark),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '• Şoför konumuna göre en optimal rota oluşturulur',
-                style: TextStyle(fontSize: 12, color: AppColors.textDark),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '• Manuel hat tanımlama gereksizdir',
-                style: TextStyle(fontSize: 12, color: AppColors.textDark),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '• Sistem gerçek zamanlı olarak güncellenir',
-                style: TextStyle(fontSize: 12, color: AppColors.textDark),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Bu sistem sayesinde manuel hat yönetimi kaldırılmış ve tüm işlemler otomatikleştirilmiştir.',
-                style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: AppColors.textDark,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Anladım'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCoordinateFixDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.gps_fixed, color: Colors.orange, size: 20),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Koordinat Düzeltme',
-                style: TextStyle(fontSize: 16),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Bu işlem şunları yapar:',
-                style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
-                    color: Colors.black87),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                '• Geçersiz koordinatları (0.0, 0.0) tespit eder',
-                style: TextStyle(fontSize: 12, color: Colors.black87),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '• Adres bilgisini kullanarak gerçek koordinatları alır',
-                style: TextStyle(fontSize: 12, color: Colors.black87),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '• Durak koordinatlarını otomatik günceller',
-                style: TextStyle(fontSize: 12, color: Colors.black87),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '• Rota oluşturma sorunlarını çözer',
-                style: TextStyle(fontSize: 12, color: Colors.black87),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning,
-                        color: Colors.orange.shade700, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Bu işlem internet bağlantısı gerektirir ve birkaç dakika sürebilir.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.orange.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _startCoordinateFix(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Başlat'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _startCoordinateFix(BuildContext context) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SimpleLoadingIndicator(
-              message: 'Koordinatlar düzeltiliyor...',
-              size: 48,
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Bu işlem birkaç dakika sürebilir',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textDark,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-    try {
-      await CoordinateFixer.fixAllStopCoordinates();
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Koordinat düzeltme işlemi tamamlandı!'),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('Hata: $e'),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-        ),
-      );
-    }
   }
 
   Widget _buildSectionHeader(String title) {
