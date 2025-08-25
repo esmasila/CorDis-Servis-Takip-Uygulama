@@ -147,6 +147,3 @@ if (SimulationService.isSimulationActive) {
 
 ---
 
-## 📞 İletişim
-
-Proje hakkında sorularınız için lütfen iletişime geçin.
