@@ -4,14 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+
 class AvatarMarkerService {
   static final Map<String, BitmapDescriptor> _markerCache = {};
   static Future<BitmapDescriptor> createAvatarMarker({
     required String? profileImageUrl,
     required int stopNumber,
     required double size,
+    bool isCompleted = false,
   }) async {
-    final cacheKey = '${profileImageUrl ?? 'default'}_${stopNumber}_$size';
+    final cacheKey =
+        '${profileImageUrl ?? 'default'}_${stopNumber}_$size${isCompleted ? '_completed' : ''}';
     if (_markerCache.containsKey(cacheKey)) {
       return _markerCache[cacheKey]!;
     }
@@ -20,6 +23,7 @@ class AvatarMarkerService {
         profileImageUrl: profileImageUrl,
         stopNumber: stopNumber,
         size: size,
+        isCompleted: isCompleted,
       );
       _markerCache[cacheKey] = marker;
       return marker;
@@ -28,10 +32,12 @@ class AvatarMarkerService {
       return await _createDefaultMarker(stopNumber, size);
     }
   }
+
   static Future<BitmapDescriptor> _generateAvatarMarker({
     required String? profileImageUrl,
     required int stopNumber,
     required double size,
+    required bool isCompleted,
   }) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -40,7 +46,7 @@ class AvatarMarkerService {
       ..color = Colors.white
       ..style = PaintingStyle.fill;
     final borderPaint = Paint()
-      ..color = Colors.orange
+      ..color = isCompleted ? Colors.green : Colors.red
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0;
     final avatarRadius = markerSize * 0.35;
@@ -90,7 +96,7 @@ class AvatarMarkerService {
     final numberCircleRadius = markerSize * 0.15;
     final numberCenter = Offset(markerSize / 2, markerSize * 0.8);
     final numberCirclePaint = Paint()
-      ..color = Colors.orange
+      ..color = isCompleted ? Colors.green : Colors.red
       ..style = PaintingStyle.fill;
     canvas.drawCircle(numberCenter, numberCircleRadius, numberCirclePaint);
     final textPainter = TextPainter(
@@ -125,6 +131,7 @@ class AvatarMarkerService {
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
   }
+
   static Future<Uint8List?> _loadImageFromUrl(String url) async {
     print('🔄 HTTP isteği yapılıyor: $url');
     try {
@@ -144,6 +151,7 @@ class AvatarMarkerService {
     }
     return null;
   }
+
   static Future<void> _drawDefaultAvatar(
     Canvas canvas,
     Offset center,
@@ -179,6 +187,7 @@ class AvatarMarkerService {
     );
     canvas.drawRRect(bodyRect, personPaint);
   }
+
   static Future<BitmapDescriptor> _createDefaultMarker(
     int stopNumber,
     double size,
@@ -214,6 +223,7 @@ class AvatarMarkerService {
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
   }
+
   static Future<BitmapDescriptor> createCarMarker({
     required double size,
     required double heading,
@@ -265,12 +275,15 @@ class AvatarMarkerService {
     _markerCache[cacheKey] = marker;
     return marker;
   }
+
   static void clearCache() {
     _markerCache.clear();
   }
+
   static void removeCacheItem(String key) {
     _markerCache.remove(key);
   }
+
   static Future<BitmapDescriptor> createEmojiMarker({
     String emoji = '🚌',
     double size = 80.0,
@@ -289,21 +302,14 @@ class AvatarMarkerService {
       final Canvas canvas = Canvas(recorder);
       final double radius = canvasSize / 2.0;
       final Offset center = Offset(radius, radius);
-      final Paint bgPaint = Paint()
-        ..color = backgroundColor
-        ..style = PaintingStyle.fill;
-      final Paint borderPaint = Paint()
-        ..color = borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = borderWidth;
-      canvas.drawCircle(center, radius - 2, bgPaint);
-      canvas.drawCircle(center, radius - 2, borderPaint);
+
+      // Sadece emoji'yi göster, avatar arka planı yok
       final TextPainter textPainter = TextPainter(
         text: TextSpan(
           text: emoji,
           style: TextStyle(
-            fontSize: canvasSize * 0.55,
-            color: Colors.white,
+            fontSize: canvasSize * 0.8, // Emoji'yi daha büyük yap
+            color: Colors.black, // Emoji rengini siyah yap
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -314,6 +320,7 @@ class AvatarMarkerService {
         center.dy - textPainter.height / 2,
       );
       textPainter.paint(canvas, emojiOffset);
+
       final ui.Picture picture = recorder.endRecording();
       final ui.Image image = await picture.toImage(canvasSize, canvasSize);
       final ByteData? byteData =

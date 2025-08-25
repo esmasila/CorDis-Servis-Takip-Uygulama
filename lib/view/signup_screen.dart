@@ -6,11 +6,13 @@ import 'login_screen.dart';
 import '../widget/snackbar.dart';
 import '../widget/common_loading_screen.dart';
 import '../utils/app_colors.dart';
+
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
   @override
   _SignupScreenState createState() => _SignupScreenState();
 }
+
 class _SignupScreenState extends State<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -32,6 +34,7 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     });
   }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -39,6 +42,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _passwordController.dispose();
     super.dispose();
   }
+
   void _loadRegions() async {
     try {
       final snapshot =
@@ -58,6 +62,7 @@ class _SignupScreenState extends State<SignupScreen> {
       );
     }
   }
+
   void _signup() async {
     if (_nameController.text.trim().isEmpty) {
       showSnackBar(text: 'İsim boş olamaz', backgroundColor: AppColors.error);
@@ -95,6 +100,19 @@ class _SignupScreenState extends State<SignupScreen> {
         'regionId': _selectedRegionId,
         'createdAt': FieldValue.serverTimestamp(),
         'isEmailVerified': false,
+      });
+
+      // Yolcu kaydından sonra passengers koleksiyonuna da ekle
+      await FirebaseFirestore.instance
+          .collection('passengers')
+          .doc(userCredential.user!.uid)
+          .set({
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'role': 'Yolcu',
+        'regionId': _selectedRegionId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
       if (mounted) {
         showSnackBar(
@@ -134,6 +152,7 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;

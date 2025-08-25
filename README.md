@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🚌 CORDIS - Servis Takip Sistemi
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.1.0+-blue.svg)](https://flutter.dev/)
@@ -238,44 +237,16 @@ flutter build ios --release
 flutter build web --release
 ```
 
-## 🤝 Katkıda Bulunma
-
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/AmazingFeature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'Add some AmazingFeature'`)
-4. Branch'inizi push edin (`git push origin feature/AmazingFeature`)
-5. Pull Request oluşturun
-
-## 📝 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
-
-## 👨‍💻 Geliştirici
-
-**CORDIS Development Team**
-- 📧 Email: info@cordis.com
-- 🌐 Website: [www.cordis.com](https://www.cordis.com)
-- 📱 Mobile: +90 XXX XXX XX XX
-
-## 🙏 Teşekkürler
-
-- [Flutter Team](https://flutter.dev/) - Harika framework için
-- [Firebase](https://firebase.google.com/) - Backend servisleri için
-- [Google Maps](https://developers.google.com/maps) - Harita servisleri için
-- [Open Source Community](https://github.com/) - Açık kaynak katkıları için
-
 ## 📈 Roadmap
 
 - [ ] **v2.0**: AI destekli rota optimizasyonu
 - [ ] **v2.1**: Çoklu dil desteği
 - [ ] **v2.2**: Gelişmiş analitik dashboard
-- [ ] [ ] **v2.3**: IoT cihaz entegrasyonu
+- [ ] **v2.3**: IoT cihaz entegrasyonu
 - [ ] **v2.4**: Blockchain tabanlı güvenlik
 
 ---
 
-⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
-=======
-# CorDis-Servis-Takip-Uygulama
-Flutter ile geliştirilmiş servis takip uygulaması. Sürücüler ve yolcular için gerçek zamanlı konum takibi, rota optimizasyonu ve mesajlaşma özellikleri içerir.
->>>>>>> ea57ba62acde921a37f615db75d57222a38b42c4
+## 📞 İletişim
+
+Proje hakkında sorularınız için lütfen iletişime geçin.

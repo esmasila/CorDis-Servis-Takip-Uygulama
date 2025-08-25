@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../service/permission_service.dart';
 import '../models/permission_model.dart';
+
 class PermissionsManagementScreen extends StatefulWidget {
   const PermissionsManagementScreen({super.key});
   @override
   State<PermissionsManagementScreen> createState() =>
       _PermissionsManagementScreenState();
 }
+
 class _PermissionsManagementScreenState
     extends State<PermissionsManagementScreen> {
   String? _selectedDriver;
@@ -17,37 +19,57 @@ class _PermissionsManagementScreenState
     super.initState();
     _loadDrivers();
   }
+
   Future<void> _loadDrivers() async {
     try {
       print('[PermissionsManagement] Şoförler yükleniyor...');
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('drivers')
           .where('isActive', isEqualTo: true)
+          .where('status', isNotEqualTo: 'deleted')
           .get();
-      if (snapshot.docs.isEmpty) {
-        print(
-            '[PermissionsManagement] Aktif şoför bulunamadı, tüm şoförler getiriliyor...');
-        snapshot = await FirebaseFirestore.instance.collection('drivers').get();
+
+      // Ek güvenlik kontrolü - sadece aktif sürücüleri filtrele
+      final activeDrivers = <Map<String, dynamic>>[];
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final isActive = data['isActive'] == true;
+        final isNotDeleted = data['isDeleted'] != true;
+        final hasValidStatus =
+            data['status'] != 'deleted' && data['status'] != 'inactive';
+
+        // Eğer alanlar null ise varsayılan olarak aktif kabul et
+        final finalIsActive = data['isActive'] == null ? true : isActive;
+        final finalIsNotDeleted =
+            data['isDeleted'] == null ? true : isNotDeleted;
+        final finalHasValidStatus =
+            data['status'] == null ? true : hasValidStatus;
+
+        if (finalIsActive && finalIsNotDeleted && finalHasValidStatus) {
+          activeDrivers.add({
+            'id': doc.id,
+            'name': data['name'] ?? 'İsim Yok',
+            'vehiclePlate': data['vehiclePlate'] ?? 'Plaka Yok',
+            'regionId': data['regionId'] ?? 'Bölge Yok',
+          });
+          print(
+              '[PermissionsManagement] ✅ Aktif şoför: ${doc.id} - ${data['name']}');
+        } else {
+          print(
+              '[PermissionsManagement] ❌ Şoför filtrelendi: ${doc.id} - isActive: $finalIsActive, isDeleted: ${!finalIsNotDeleted}, status: ${!finalHasValidStatus}');
+        }
       }
+
       print(
-          '[PermissionsManagement] Bulunan şoför sayısı: ${snapshot.docs.length}');
+          '[PermissionsManagement] Bulunan aktif şoför sayısı: ${activeDrivers.length}');
       if (mounted) {
         setState(() {
-          _drivers = snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            print('[PermissionsManagement] Şoför: ${doc.id} - ${data['name']}');
-            return {
-              'id': doc.id,
-              'name': data['name'] ?? 'İsim Yok',
-              'vehiclePlate': data['vehiclePlate'] ?? 'Plaka Yok',
-              'regionId': data['regionId'] ?? 'Bölge Yok',
-            };
-          }).toList();
+          _drivers = activeDrivers;
           if (_drivers.isNotEmpty) {
             _selectedDriver = _drivers.first['id'];
             print('[PermissionsManagement] Seçilen şoför: $_selectedDriver');
           } else {
-            print('[PermissionsManagement] Hiç şoför bulunamadı');
+            print('[PermissionsManagement] Hiç aktif şoför bulunamadı');
           }
         });
       }
@@ -63,6 +85,7 @@ class _PermissionsManagementScreenState
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -453,6 +476,7 @@ class _PermissionsManagementScreenState
       ),
     );
   }
+
   void _showCancelConfirmation(PermissionModel permission) {
     showDialog(
       context: context,
@@ -480,6 +504,7 @@ class _PermissionsManagementScreenState
       ),
     );
   }
+
   Color _getPermissionColor(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -496,6 +521,7 @@ class _PermissionsManagementScreenState
         return Colors.grey.shade600;
     }
   }
+
   IconData _getPermissionIcon(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -512,6 +538,7 @@ class _PermissionsManagementScreenState
         return Icons.event_busy;
     }
   }
+
   String _getPermissionTypeText(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -530,6 +557,7 @@ class _PermissionsManagementScreenState
         return 'Bilinmeyen İzin Türü';
     }
   }
+
   String _formatPermissionDate(PermissionModel permission) {
     final startDate = permission.startDate;
     final endDate = permission.endDate;
@@ -539,6 +567,7 @@ class _PermissionsManagementScreenState
       return _formatDate(startDate);
     }
   }
+
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -553,6 +582,7 @@ class _PermissionsManagementScreenState
       return '${date.day}/${date.month}/${date.year}';
     }
   }
+
   Future<void> _cancelPermission(String permissionId) async {
     try {
       final error = await PermissionService.cancelPermission(permissionId);

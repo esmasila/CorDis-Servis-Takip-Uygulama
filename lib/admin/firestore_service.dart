@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/region_model.dart';
 import '../models/user_model.dart';
+
 class AdminFirestoreService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static Map<String, List<RegionModel>>? _regionsCache;
@@ -10,10 +11,12 @@ class AdminFirestoreService {
     _regionsCache = null;
     _regionsCacheTime = null;
   }
+
   static bool _isCacheValid() {
     if (_regionsCacheTime == null) return false;
     return DateTime.now().difference(_regionsCacheTime!) < _cacheTimeout;
   }
+
   static Future<List<RegionModel>> getRegions() async {
     try {
       if (_regionsCache != null && _isCacheValid()) {
@@ -36,6 +39,7 @@ class AdminFirestoreService {
       throw Exception('Bölgeler alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> addRegion(RegionModel region) async {
     try {
       await _firestore.collection('regions').add(region.toMap());
@@ -43,13 +47,18 @@ class AdminFirestoreService {
       throw Exception('Bölge eklenirken hata oluştu: $e');
     }
   }
+
   static Future<void> updateRegion(String regionId, RegionModel region) async {
     try {
-      await _firestore.collection('regions').doc(regionId).update(region.toMap());
+      await _firestore
+          .collection('regions')
+          .doc(regionId)
+          .update(region.toMap());
     } catch (e) {
       throw Exception('Bölge güncellenirken hata oluştu: $e');
     }
   }
+
   static Future<void> deleteRegion(String regionId) async {
     try {
       await _firestore.collection('regions').doc(regionId).delete();
@@ -57,6 +66,7 @@ class AdminFirestoreService {
       throw Exception('Bölge silinirken hata oluştu: $e');
     }
   }
+
   static Future<List<UserModel>> getUsers() async {
     try {
       final snapshot = await _firestore.collection('users').get();
@@ -67,6 +77,7 @@ class AdminFirestoreService {
       throw Exception('Kullanıcılar alınırken hata oluştu: $e');
     }
   }
+
   static Future<List<UserModel>> getUsersByRole(String role) async {
     try {
       final snapshot = await _firestore
@@ -80,6 +91,7 @@ class AdminFirestoreService {
       throw Exception('$role kullanıcıları alınırken hata oluştu: $e');
     }
   }
+
   static Future<List<UserModel>> getUsersByRegion(String regionId) async {
     try {
       final snapshot = await _firestore
@@ -93,6 +105,7 @@ class AdminFirestoreService {
       throw Exception('Bölge kullanıcıları alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> updateUserRole(String userId, String newRole) async {
     try {
       await _firestore.collection('users').doc(userId).update({
@@ -103,6 +116,7 @@ class AdminFirestoreService {
       throw Exception('Kullanıcı rolü güncellenirken hata oluştu: $e');
     }
   }
+
   static Future<void> assignUserToRegion(String userId, String regionId) async {
     try {
       await _firestore.collection('users').doc(userId).update({
@@ -113,38 +127,83 @@ class AdminFirestoreService {
       throw Exception('Kullanıcı bölgeye atanırken hata oluştu: $e');
     }
   }
+
   static Future<List<Map<String, dynamic>>> getDrivers() async {
     try {
-      print('[FirestoreService] Fetching drivers from Firestore');
       final snapshot = await _firestore
           .collection('drivers')
+          .where('isActive', isEqualTo: true)
+          .where('status', isNotEqualTo: 'deleted')
           .orderBy('name')
           .get(const GetOptions(source: Source.serverAndCache));
-      return snapshot.docs.map((doc) {
+
+      // Ek güvenlik kontrolü - sadece aktif sürücüleri filtrele
+      final activeDrivers = <Map<String, dynamic>>[];
+      for (final doc in snapshot.docs) {
         final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
+        final isActive = data['isActive'] == true;
+        final isNotDeleted = data['isDeleted'] != true;
+        final hasValidStatus =
+            data['status'] != 'deleted' && data['status'] != 'inactive';
+
+        // Eğer alanlar null ise varsayılan olarak aktif kabul et
+        final finalIsActive = data['isActive'] == null ? true : isActive;
+        final finalIsNotDeleted =
+            data['isDeleted'] == null ? true : isNotDeleted;
+        final finalHasValidStatus =
+            data['status'] == null ? true : hasValidStatus;
+
+        if (finalIsActive && finalIsNotDeleted && finalHasValidStatus) {
+          data['id'] = doc.id;
+          activeDrivers.add(data);
+        }
+      }
+
+      return activeDrivers;
     } catch (e) {
       print('[FirestoreService] Error fetching drivers: $e');
       throw Exception('Şoförler alınırken hata oluştu: $e');
     }
   }
-  static Future<List<Map<String, dynamic>>> getDriversByRegion(String regionId) async {
+
+  static Future<List<Map<String, dynamic>>> getDriversByRegion(
+      String regionId) async {
     try {
       final snapshot = await _firestore
           .collection('drivers')
           .where('regionId', isEqualTo: regionId)
+          .where('isActive', isEqualTo: true)
+          .where('status', isNotEqualTo: 'deleted')
           .get();
-      return snapshot.docs.map((doc) {
+
+      // Ek güvenlik kontrolü - sadece aktif sürücüleri filtrele
+      final activeDrivers = <Map<String, dynamic>>[];
+      for (final doc in snapshot.docs) {
         final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
+        final isActive = data['isActive'] == true;
+        final isNotDeleted = data['isDeleted'] != true;
+        final hasValidStatus =
+            data['status'] != 'deleted' && data['status'] != 'inactive';
+
+        // Eğer alanlar null ise varsayılan olarak aktif kabul et
+        final finalIsActive = data['isActive'] == null ? true : isActive;
+        final finalIsNotDeleted =
+            data['isDeleted'] == null ? true : isNotDeleted;
+        final finalHasValidStatus =
+            data['status'] == null ? true : hasValidStatus;
+
+        if (finalIsActive && finalIsNotDeleted && finalHasValidStatus) {
+          data['id'] = doc.id;
+          activeDrivers.add(data);
+        }
+      }
+
+      return activeDrivers;
     } catch (e) {
       throw Exception('Bölge şoförleri alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> updateDriverStatus(String driverId, bool isActive) async {
     try {
       await _firestore.collection('drivers').doc(driverId).update({
@@ -155,6 +214,7 @@ class AdminFirestoreService {
       throw Exception('Şoför durumu güncellenirken hata oluştu: $e');
     }
   }
+
   static Future<List<Map<String, dynamic>>> getServices() async {
     try {
       final snapshot = await _firestore.collection('services').get();
@@ -167,7 +227,9 @@ class AdminFirestoreService {
       throw Exception('Servisler alınırken hata oluştu: $e');
     }
   }
-  static Future<List<Map<String, dynamic>>> getServicesByRegion(String regionId) async {
+
+  static Future<List<Map<String, dynamic>>> getServicesByRegion(
+      String regionId) async {
     try {
       final snapshot = await _firestore
           .collection('services')
@@ -182,6 +244,7 @@ class AdminFirestoreService {
       throw Exception('Bölge servisleri alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> createService({
     required String driverId,
     required String regionId,
@@ -204,32 +267,52 @@ class AdminFirestoreService {
       throw Exception('Servis oluşturulurken hata oluştu: $e');
     }
   }
+
   static Future<Map<String, int>> getStatistics() async {
     try {
       final usersSnapshot = await _firestore.collection('users').get();
       final driversSnapshot = await _firestore.collection('drivers').get();
       final regionsSnapshot = await _firestore.collection('regions').get();
       final servicesSnapshot = await _firestore.collection('services').get();
+
       final passengers = usersSnapshot.docs
           .where((doc) => doc.data()['role'] == 'Yolcu')
           .length;
       final drivers = usersSnapshot.docs
           .where((doc) => doc.data()['role'] == 'Şoför')
           .length;
+
+      // Sadece aktif sürücüleri say
+      final activeDrivers = driversSnapshot.docs.where((doc) {
+        final data = doc.data();
+        final isActive = data['isActive'] == true;
+        final isNotDeleted = data['isDeleted'] != true;
+        final hasValidStatus =
+            data['status'] != 'deleted' && data['status'] != 'inactive';
+
+        // Eğer alanlar null ise varsayılan olarak aktif kabul et
+        final finalIsActive = data['isActive'] == null ? true : isActive;
+        final finalIsNotDeleted =
+            data['isDeleted'] == null ? true : isNotDeleted;
+        final finalHasValidStatus =
+            data['status'] == null ? true : hasValidStatus;
+
+        return finalIsActive && finalIsNotDeleted && finalHasValidStatus;
+      }).length;
+
       return {
         'totalUsers': usersSnapshot.docs.length,
         'totalPassengers': passengers,
         'totalDrivers': drivers,
         'totalRegions': regionsSnapshot.docs.length,
         'totalServices': servicesSnapshot.docs.length,
-        'activeDrivers': driversSnapshot.docs
-            .where((doc) => doc.data()['isActive'] == true)
-            .length,
+        'activeDrivers': activeDrivers,
       };
     } catch (e) {
       throw Exception('İstatistikler alınırken hata oluştu: $e');
     }
   }
+
   static Future<List<Map<String, dynamic>>> getMessages() async {
     try {
       final snapshot = await _firestore
@@ -245,6 +328,7 @@ class AdminFirestoreService {
       throw Exception('Mesajlar alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> deleteMessage(String messageId) async {
     try {
       await _firestore.collection('messages').doc(messageId).delete();
@@ -252,33 +336,48 @@ class AdminFirestoreService {
       throw Exception('Mesaj silinirken hata oluştu: $e');
     }
   }
+
   static Stream<QuerySnapshot> getDriverLocations() {
-    return _firestore
-        .collection('live_locations')
-        .snapshots();
+    return _firestore.collection('live_locations').snapshots();
   }
-  static Future<Map<String, dynamic>?> getDriverLocation(String driverId) async {
+
+  static Future<Map<String, dynamic>?> getDriverLocation(
+      String driverId) async {
     try {
-      final doc = await _firestore
-          .collection('live_locations')
-          .doc(driverId)
-          .get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        data['id'] = doc.id;
-        if (data.containsKey('latitude')) {
-          data['lat'] = data['latitude'];
-        }
-        if (data.containsKey('longitude')) {
-          data['lng'] = data['longitude'];
-        }
+      // Önce sürücünün aktif olup olmadığını kontrol et
+      final driverDoc =
+          await _firestore.collection('drivers').doc(driverId).get();
+      if (!driverDoc.exists) {
+        return null;
+      }
+
+      final driverData = driverDoc.data()!;
+      final isActive = driverData['isActive'] == true;
+      final isNotDeleted = driverData['isDeleted'] != true;
+      final hasValidStatus = driverData['status'] != 'deleted' &&
+          driverData['status'] != 'inactive';
+
+      // Eğer sürücü pasif veya silinmişse konum bilgisini getirme
+      if (!isActive || !isNotDeleted || !hasValidStatus) {
+        return null;
+      }
+
+      final locationDoc =
+          await _firestore.collection('live_locations').doc(driverId).get();
+
+      if (locationDoc.exists) {
+        final data = locationDoc.data()!;
+        data['id'] = locationDoc.id;
         return data;
       }
+
       return null;
     } catch (e) {
-      throw Exception('Şoför konumu alınırken hata oluştu: $e');
+      print('[FirestoreService] Error getting driver location: $e');
+      return null;
     }
   }
+
   static Future<List<Map<String, dynamic>>> getPassengers() async {
     try {
       print('[FirestoreService] Fetching passengers from Firestore');
@@ -296,7 +395,9 @@ class AdminFirestoreService {
       throw Exception('Yolcular alınırken hata oluştu: $e');
     }
   }
-  static Future<List<Map<String, dynamic>>> getPassengersByRegion(String regionId) async {
+
+  static Future<List<Map<String, dynamic>>> getPassengersByRegion(
+      String regionId) async {
     try {
       final snapshot = await _firestore
           .collection('passengers')
@@ -311,6 +412,7 @@ class AdminFirestoreService {
       throw Exception('Bölge yolcuları alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> addPassenger({
     required String name,
     required String email,
@@ -348,9 +450,11 @@ class AdminFirestoreService {
         } else {
           passengerData['stopName'] = address;
         }
-        print('[FirestoreService] Koordinatlar eklendi: ($latitude, $longitude)');
+        print(
+            '[FirestoreService] Koordinatlar eklendi: ($latitude, $longitude)');
       } else {
-        print('[FirestoreService] Koordinat bilgisi yok, varsayılan değerler kullanılıyor');
+        print(
+            '[FirestoreService] Koordinat bilgisi yok, varsayılan değerler kullanılıyor');
         passengerData.addAll({
           'stopLat': 41.0082,
           'stopLng': 28.9784,
@@ -366,7 +470,9 @@ class AdminFirestoreService {
       throw Exception('Yolcu eklenirken hata oluştu: $e');
     }
   }
-  static Future<void> updatePassenger(String passengerId, Map<String, dynamic> data) async {
+
+  static Future<void> updatePassenger(
+      String passengerId, Map<String, dynamic> data) async {
     try {
       data['updatedAt'] = FieldValue.serverTimestamp();
       await _firestore.collection('passengers').doc(passengerId).update(data);
@@ -374,6 +480,7 @@ class AdminFirestoreService {
       throw Exception('Yolcu güncellenirken hata oluştu: $e');
     }
   }
+
   static Future<void> deletePassenger(String passengerId) async {
     try {
       await _firestore.collection('passengers').doc(passengerId).delete();
@@ -381,7 +488,9 @@ class AdminFirestoreService {
       throw Exception('Yolcu silinirken hata oluştu: $e');
     }
   }
-  static Future<void> assignPassengerToDriver(String passengerId, String? driverId) async {
+
+  static Future<void> assignPassengerToDriver(
+      String passengerId, String? driverId) async {
     try {
       await _firestore.collection('passengers').doc(passengerId).update({
         'driverId': driverId,
@@ -391,6 +500,7 @@ class AdminFirestoreService {
       throw Exception('Yolcu şoföre atanırken hata oluştu: $e');
     }
   }
+
   static Future<List<Map<String, dynamic>>> getRoutes() async {
     try {
       final snapshot = await _firestore
@@ -406,7 +516,9 @@ class AdminFirestoreService {
       throw Exception('Rotalar alınırken hata oluştu: $e');
     }
   }
-  static Future<List<Map<String, dynamic>>> getRoutesByDriver(String driverId) async {
+
+  static Future<List<Map<String, dynamic>>> getRoutesByDriver(
+      String driverId) async {
     try {
       final snapshot = await _firestore
           .collection('routes')
@@ -422,6 +534,7 @@ class AdminFirestoreService {
       throw Exception('Şoför rotaları alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> createRoute({
     required String driverId,
     required String regionId,
@@ -446,7 +559,9 @@ class AdminFirestoreService {
       throw Exception('Rota oluşturulurken hata oluştu: $e');
     }
   }
-  static Future<void> updateRoute(String routeId, Map<String, dynamic> data) async {
+
+  static Future<void> updateRoute(
+      String routeId, Map<String, dynamic> data) async {
     try {
       data['updatedAt'] = FieldValue.serverTimestamp();
       await _firestore.collection('routes').doc(routeId).update(data);
@@ -454,7 +569,9 @@ class AdminFirestoreService {
       throw Exception('Rota güncellenirken hata oluştu: $e');
     }
   }
-  static Future<void> addStopToRoute(String routeId, Map<String, dynamic> newStop) async {
+
+  static Future<void> addStopToRoute(
+      String routeId, Map<String, dynamic> newStop) async {
     try {
       final routeDoc = await _firestore.collection('routes').doc(routeId).get();
       if (!routeDoc.exists) {
@@ -471,6 +588,7 @@ class AdminFirestoreService {
       throw Exception('Rotaya durak eklenirken hata oluştu: $e');
     }
   }
+
   static Future<void> removeStopFromRoute(String routeId, int stopIndex) async {
     try {
       final routeDoc = await _firestore.collection('routes').doc(routeId).get();
@@ -492,7 +610,9 @@ class AdminFirestoreService {
       throw Exception('Rotadan durak silinirken hata oluştu: $e');
     }
   }
-  static Future<void> updateStopInRoute(String routeId, int stopIndex, Map<String, dynamic> updatedStop) async {
+
+  static Future<void> updateStopInRoute(
+      String routeId, int stopIndex, Map<String, dynamic> updatedStop) async {
     try {
       final routeDoc = await _firestore.collection('routes').doc(routeId).get();
       if (!routeDoc.exists) {
@@ -513,10 +633,13 @@ class AdminFirestoreService {
       throw Exception('Rota durağı güncellenirken hata oluştu: $e');
     }
   }
+
   static Stream<DocumentSnapshot> getRouteStream(String routeId) {
     return _firestore.collection('routes').doc(routeId).snapshots();
   }
-  static Future<Map<String, dynamic>?> getActiveRouteForDriver(String driverId) async {
+
+  static Future<Map<String, dynamic>?> getActiveRouteForDriver(
+      String driverId) async {
     try {
       final snapshot = await _firestore
           .collection('routes')
@@ -535,6 +658,7 @@ class AdminFirestoreService {
       throw Exception('Aktif rota alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> deleteRoute(String routeId) async {
     try {
       await _firestore.collection('routes').doc(routeId).delete();
@@ -542,12 +666,11 @@ class AdminFirestoreService {
       throw Exception('Rota silinirken hata oluştu: $e');
     }
   }
+
   static Future<List<Map<String, dynamic>>> getStops() async {
     try {
-      final snapshot = await _firestore
-          .collection('enhanced_stops')
-          .orderBy('name')
-          .get();
+      final snapshot =
+          await _firestore.collection('enhanced_stops').orderBy('name').get();
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
@@ -557,7 +680,9 @@ class AdminFirestoreService {
       throw Exception('Duraklar alınırken hata oluştu: $e');
     }
   }
-  static Future<List<Map<String, dynamic>>> getStopsByRegion(String regionId) async {
+
+  static Future<List<Map<String, dynamic>>> getStopsByRegion(
+      String regionId) async {
     try {
       final snapshot = await _firestore
           .collection('enhanced_stops')
@@ -572,6 +697,7 @@ class AdminFirestoreService {
       throw Exception('Bölge durakları alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> addStop({
     required String name,
     required String address,
@@ -596,7 +722,9 @@ class AdminFirestoreService {
       throw Exception('Durak eklenirken hata oluştu: $e');
     }
   }
-  static Future<void> updateStop(String stopId, Map<String, dynamic> data) async {
+
+  static Future<void> updateStop(
+      String stopId, Map<String, dynamic> data) async {
     try {
       data['updatedAt'] = FieldValue.serverTimestamp();
       await _firestore.collection('enhanced_stops').doc(stopId).update(data);
@@ -604,6 +732,7 @@ class AdminFirestoreService {
       throw Exception('Durak güncellenirken hata oluştu: $e');
     }
   }
+
   static Future<void> deleteStop(String stopId) async {
     try {
       await _firestore.collection('enhanced_stops').doc(stopId).delete();
@@ -611,6 +740,7 @@ class AdminFirestoreService {
       throw Exception('Durak silinirken hata oluştu: $e');
     }
   }
+
   static Future<void> sendNotificationToAll({
     required String title,
     required String message,
@@ -628,6 +758,7 @@ class AdminFirestoreService {
       throw Exception('Bildirim gönderilirken hata oluştu: $e');
     }
   }
+
   static Future<void> sendNotificationToUser({
     required String userId,
     required String title,
@@ -645,6 +776,7 @@ class AdminFirestoreService {
       throw Exception('Kullanıcıya bildirim gönderilirken hata oluştu: $e');
     }
   }
+
   static Future<List<Map<String, dynamic>>> getNotifications() async {
     try {
       final snapshot = await _firestore
@@ -660,6 +792,7 @@ class AdminFirestoreService {
       throw Exception('Bildirimler alınırken hata oluştu: $e');
     }
   }
+
   static Future<void> deleteNotification(String notificationId) async {
     try {
       await _firestore.collection('notifications').doc(notificationId).delete();

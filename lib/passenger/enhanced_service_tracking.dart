@@ -11,6 +11,7 @@ import 'package:geocoding/geocoding.dart';
 import '../service/location_service.dart';
 import '../service/user_session.dart';
 import '../service/avatar_marker_service.dart';
+import '../service/stop_completion_tracker.dart';
 import '../service/simple_stop_service.dart';
 import '../service/enhanced_stop_management_service.dart';
 import '../utils/app_colors.dart';
@@ -93,6 +94,9 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
 
   @override
   void dispose() {
+    // Durak tamamlama takibini durdur
+    StopCompletionTracker().stopTracking();
+    
     _positionStream?.cancel();
     _serviceStatusStream?.cancel();
     _stopsStream?.cancel();
@@ -112,6 +116,8 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
   Future<void> _initializeTracking() async {
     setState(() => _isLoading = true);
     try {
+      // Avatar marker cache'ini temizle
+      AvatarMarkerService.clearCache();
       await _resolveRegionId();
       Future.microtask(_getCurrentLocation);
       _startServiceStatusTracking();
@@ -350,6 +356,24 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
   void _startStopLogsTracking() {
     _stopLogsSubscription?.cancel();
     if (_activeDriverId == null || _activeDriverId!.isEmpty) return;
+    
+    // Durak tamamlama takibini başlat
+    StopCompletionTracker().startTracking(
+      driverId: _activeDriverId!,
+      onStopsUpdated: () {
+        if (mounted) {
+          setState(() {
+            _completedStopsSet = StopCompletionTracker().completedStops;
+            _completedStops = _completedStopsSet.length;
+            _routeProgress = _totalStops > 0 ? _completedStops / _totalStops : 0.0;
+          });
+          // Update map markers to reflect new completion status
+          _updateMapWithAllStops();
+        }
+      },
+    );
+    
+    // Eski stream'i de koru (geriye uyumluluk için)
     final today = DateTime.now();
     final startOfDay = DateTime(today.year, today.month, today.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
@@ -367,7 +391,9 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         final status = data['status'] as String?;
         final stopId = data['stopId'] as String?;
         if (stopId == null) continue;
-        if (status == 'completed' || status == 'arrived') {
+        if (status == 'completed' ||
+            status == 'arrived' ||
+            status == 'visited') {
           completed.add(stopId);
         }
       }
@@ -377,6 +403,8 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         _completedStops = completed.length;
         _routeProgress = _totalStops > 0 ? _completedStops / _totalStops : 0.0;
       });
+      // Update map markers to reflect new completion status
+      _updateMapWithAllStops();
     });
   }
 
@@ -384,6 +412,7 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
     if (_driverLatLng == null || _allStops.isEmpty) return;
     double minDistance = double.infinity;
     Map<String, dynamic>? nearestStop;
+
     for (final stop in _allStops) {
       final stopLatLng = _extractStopLatLng(stop);
       if (stopLatLng != null) {
@@ -393,12 +422,19 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
           stopLatLng.latitude,
           stopLatLng.longitude,
         );
+
+        // Check if driver is within 50 meters of the stop and mark as completed
+        if (distance <= 50 && !_completedStopsSet.contains(stop['id'])) {
+          _updateProgressWhenArrivingAtStop(stop);
+        }
+
         if (distance < minDistance) {
           minDistance = distance;
           nearestStop = stop;
         }
       }
     }
+
     if (nearestStop != null && minDistance <= 20.0 && !_isDriverMoving) {
       setState(() {
         _driverStatus = 'Durakta';
@@ -411,12 +447,30 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
   void _updateProgressWhenArrivingAtStop(Map<String, dynamic> stop) {
     final String stopId = stop['id'] as String? ?? '';
     if (stopId.isNotEmpty && !_completedStopsSet.contains(stopId)) {
+      // Durak tamamlama takibinde de işaretle
+      StopCompletionTracker().markStopAsCompleted(stopId);
+      
       setState(() {
         _completedStopsSet.add(stopId);
         _completedStops = _completedStopsSet.length;
         _routeProgress = _totalStops > 0 ? _completedStops / _totalStops : 0.0;
       });
       _logStopArrival(stopId);
+
+      // Avatar marker cache'ini temizle ve map'i güncelle
+      AvatarMarkerService.clearCache();
+      _updateMapWithAllStops();
+
+      // Show notification for completed stop
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Durak tamamlandı: ${stop['name'] ?? 'Durak'}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -642,6 +696,9 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
   }
 
   Future<void> _updateMapWithAllStops() async {
+    // Avatar marker cache'ini temizle - yeni durumları yansıtmak için
+    AvatarMarkerService.clearCache();
+
     final newMarkers = <Marker>{};
     if (_currentPosition != null) {
       newMarkers.add(
@@ -665,6 +722,13 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       if (isMyStop) {
         _myStopLatLng = stopLatLng;
       }
+
+      // Check if stop is completed/visited
+      final bool isStopCompleted = _completedStopsSet.contains(stop['id']) ||
+          stop['isCompleted'] == true ||
+          stop['status'] == 'completed' ||
+          stop['status'] == 'visited';
+
       final defaultIcon = BitmapDescriptor.defaultMarkerWithHue(
           isMyStop ? BitmapDescriptor.hueAzure : BitmapDescriptor.hueViolet);
       newMarkers.add(
@@ -692,11 +756,19 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         final bool isMyStop = (stop['passengerId'] == widget.passengerId) ||
             (List<String>.from(stop['passengerIds'] ?? [])
                 .contains(widget.passengerId));
+
+        // Check if stop is completed/visited
+        final bool isStopCompleted = _completedStopsSet.contains(stop['id']) ||
+            stop['isCompleted'] == true ||
+            stop['status'] == 'completed' ||
+            stop['status'] == 'visited';
+
         try {
           final avatarIcon = await AvatarMarkerService.createAvatarMarker(
             profileImageUrl: (stop['profileImageUrl'] ?? '') as String?,
             stopNumber: i + 1,
             size: 60,
+            isCompleted: isStopCompleted,
           );
           if (!mounted) return;
           setState(() {
@@ -733,17 +805,21 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
 
   Future<void> _updateDriverMarker(LatLng driverPosition) async {
     try {
-      final carIcon = await AvatarMarkerService.createEmojiMarker(
+      // Şoför marker'ı için sadece emoji göster, avatar yok
+      final avatarIcon = await AvatarMarkerService.createEmojiMarker(
         emoji: '🚌',
-        size: 88,
-        backgroundColor: _isDriverMoving ? Colors.green : Colors.orange,
+        size: 80.0,
+        backgroundColor: const Color(0xFF2563EB),
+        borderColor: const Color(0xFFFFFFFF),
+        borderWidth: 3.0,
       );
       final driverMarker = Marker(
         markerId: const MarkerId('driver'),
         position: driverPosition,
-        icon: carIcon,
+        icon: avatarIcon,
         infoWindow: InfoWindow(
-          title: 'Şoför${_vehiclePlate.isNotEmpty ? ' ($_vehiclePlate)' : ''}',
+          title:
+              '🚌 Şoför${_vehiclePlate.isNotEmpty ? ' ($_vehiclePlate)' : ''}',
           snippet: _driverStatus,
         ),
       );
@@ -1534,11 +1610,60 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.percent, color: Colors.purple.shade600, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Tamamlanan: ${(_routeProgress * 100).toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.purple.shade700,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
             value: _routeProgress,
             backgroundColor: Colors.grey.shade300,
             valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+            minHeight: 8,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.grey.shade600, size: 16),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'Kırmızı: Bekleyen duraklar • Yeşil: Tamamlanan duraklar',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _resetProgress,
+                  icon: Icon(Icons.refresh, size: 16),
+                  label: Text('İlerlemeyi Sıfırla'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1574,9 +1699,16 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         setState(() {
           _driverLatLng = p;
           _isDriverMoving = true;
-          _driverStatus = 'Test Modu';
+          _driverStatus = 'Test Modu - Durak Takibi Aktif';
         });
         await _updateDriverMarker(p);
+
+        // Check if driver is near any stops and mark them as completed
+        _checkAndMarkStopsAsCompleted(p);
+
+        // Avatar marker cache'ini temizle - test modunda hızlı güncelleme için
+        AvatarMarkerService.clearCache();
+
         _debouncedRouteAndEta();
         idx = (idx + 1) % route.length;
       });
@@ -1584,6 +1716,16 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       setState(() {
         _driverStatus = _isDriverMoving ? 'Hareket Halinde' : 'Bekliyor';
       });
+
+      // Reset progress when exiting test mode
+      if (mounted) {
+        setState(() {
+          _completedStopsSet.clear();
+          _completedStops = 0;
+          _routeProgress = 0.0;
+        });
+        _updateMapWithAllStops();
+      }
     }
   }
 
@@ -1619,6 +1761,72 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
     });
     if (_mapController != null) {
       _drawRouteOnMap(routePoints);
+    }
+  }
+
+  void _checkAndMarkStopsAsCompleted(LatLng driverPosition) {
+    if (_allStops.isEmpty) return;
+
+    for (int i = 0; i < _allStops.length; i++) {
+      final stop = _allStops[i];
+      final stopLatLng = _extractStopLatLng(stop);
+      if (stopLatLng == null) continue;
+
+      // Check if driver is within 50 meters of the stop
+      final distance = Geolocator.distanceBetween(
+        driverPosition.latitude,
+        driverPosition.longitude,
+        stopLatLng.latitude,
+        stopLatLng.longitude,
+      );
+
+      // If driver is within 50 meters and stop is not already completed
+      if (distance <= 50 && !_completedStopsSet.contains(stop['id'])) {
+        setState(() {
+          _completedStopsSet.add(stop['id']);
+          _completedStops = _completedStopsSet.length;
+          _routeProgress =
+              _totalStops > 0 ? _completedStops / _totalStops : 0.0;
+        });
+
+        // Avatar marker cache'ini temizle ve map'i güncelle
+        AvatarMarkerService.clearCache();
+        _updateMapWithAllStops();
+
+        // Show notification for completed stop
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Durak tamamlandı: ${stop['name'] ?? 'Durak ${i + 1}'}'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _resetProgress() {
+    setState(() {
+      _completedStopsSet.clear();
+      _completedStops = 0;
+      _routeProgress = 0.0;
+    });
+
+    // Avatar marker cache'ini temizle ve map'i güncelle
+    AvatarMarkerService.clearCache();
+    _updateMapWithAllStops();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('İlerleme sıfırlandı'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 

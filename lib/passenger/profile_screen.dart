@@ -14,11 +14,13 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import '../service/avatar_marker_service.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
+
 class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -42,6 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _testModeEnabled = false;
     }
   }
+
   Future<void> _loadProfile() async {
     if (!mounted) return;
     setState(() => isLoading = true);
@@ -343,6 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
   String _shortenRegionName(String regionName) {
     List<String> words = regionName.trim().split(' ');
     if (words.isNotEmpty) {
@@ -350,6 +354,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     return regionName;
   }
+
   String _getCleanRegionName(String regionName) {
     if (regionName.contains('{') && regionName.contains('}')) {
       try {
@@ -367,6 +372,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     return regionName;
   }
+
   String _getCleanVehiclePlate(String plate) {
     if (plate.contains('{') && plate.contains('}')) {
       try {
@@ -389,6 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     return plate;
   }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -397,6 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _addressController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -823,6 +831,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Future<void> _selectLocationFromMap() async {
     final result = await Navigator.push(
       context,
@@ -905,6 +914,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
   Future<void> _pickImage() async {
     try {
       final String? uid =
@@ -996,6 +1006,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => isLoading = false);
     }
   }
+
   Future<void> _saveProfile() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
@@ -1069,7 +1080,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ]);
         }
-        print('✅ Adres güncellendi, durak haritadan seçilecek');
+
+        // Yeni adres için otomatik durak işlemi
+        try {
+          print('🔄 Yeni adres için otomatik durak işlemi başlatılıyor...');
+          await SimpleStopService.createStopFromAddress(
+            passengerId: UserSession.userId!,
+            passengerName: name,
+            address: address,
+            regionId: UserSession.regionId!,
+          );
+          print('✅ Otomatik durak işlemi tamamlandı');
+        } catch (e) {
+          print('⚠️ Otomatik durak işlemi hatası: $e');
+        }
+
+        print('✅ Adres güncellendi, otomatik durak işlemi tamamlandı');
       }
       if (mounted) {
         setState(() => isEditing = false);
@@ -1097,12 +1123,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
   void _cancelEdit() {
     if (mounted) {
       setState(() => isEditing = false);
       _loadProfile();
     }
   }
+
   Future<void> _logout() async {
     try {
       await FirebaseAuth.instance.signOut();
@@ -1123,6 +1151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
   Widget _buildInfoCard(String title, String value, IconData icon) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1196,6 +1225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Widget _buildEditField(
       String label, TextEditingController controller, IconData icon,
       {TextInputType? keyboardType}) {
@@ -1236,11 +1266,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
 class MapSelectionScreen extends StatefulWidget {
   const MapSelectionScreen({super.key});
   @override
   State<MapSelectionScreen> createState() => _MapSelectionScreenState();
 }
+
 class _MapSelectionScreenState extends State<MapSelectionScreen> {
   GoogleMapController? _mapController;
   LatLng? _selectedLocation;
@@ -1252,6 +1284,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     super.initState();
     _getCurrentLocation();
   }
+
   Future<void> _getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -1275,6 +1308,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       print('Konum alma hatası: $e');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1391,6 +1425,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       ),
     );
   }
+
   Future<void> _onMapTap(LatLng location) async {
     setState(() {
       _selectedLocation = location;

@@ -4,11 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
+import '../service/enhanced_stop_management_service.dart';
+
 class DriverTrackingScreen extends StatefulWidget {
   const DriverTrackingScreen({super.key});
   @override
   State<DriverTrackingScreen> createState() => _DriverTrackingScreenState();
 }
+
 class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   GoogleMapController? _mapController;
   Map<String, dynamic> _selectedDriver = {};
@@ -20,123 +23,387 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   StreamSubscription<DocumentSnapshot>? _locationSubscription;
   Map<String, dynamic>? _nearestStop;
   Timer? _nearestStopTimer;
+  bool _isLoading = true;
+
+  // Varsayılan konum (Kayseri)
+  static const LatLng _defaultLocation = LatLng(38.7205, 35.4826);
+
   @override
   void initState() {
     super.initState();
     _loadDrivers();
   }
+
   @override
   void dispose() {
     _locationSubscription?.cancel();
     _nearestStopTimer?.cancel();
     super.dispose();
   }
+
   Future<void> _loadDrivers() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('drivers').get();
-    final list = snapshot.docs.map((e) => {'id': e.id, ...e.data()}).toList();
-    setState(() {
-      _drivers = list;
-      if (list.isNotEmpty) {
-        _selectDriver(list.first);
-      }
-    });
-  }
-  Future<void> _selectDriver(Map<String, dynamic> driver) async {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final stopsSnap = await FirebaseFirestore.instance
-        .collection('routes')
-        .doc(driver['id'])
-        .collection('dates')
-        .doc(today)
-        .collection('enhanced_stops')
-        .get();
-    final stops = stopsSnap.docs.map((e) => {'id': e.id, ...e.data()}).toList();
-    final tripsSnap = await FirebaseFirestore.instance
-        .collection('routes')
-        .doc(driver['id'])
-        .collection('dates')
-        .doc(today)
-        .collection('trips')
-        .get();
-    final trips = tripsSnap.docs.map((e) => {'id': e.id, ...e.data()}).toList();
-    _locationSubscription?.cancel();
     try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('drivers')
+          .where('isActive', isEqualTo: true)
+          .where('status', isNotEqualTo: 'deleted')
+          .get();
+
+      // Ek güvenlik kontrolü - sadece aktif sürücüleri filtrele
+      final activeDrivers = <Map<String, dynamic>>[];
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final isActive = data['isActive'] == true;
+        final isNotDeleted = data['isDeleted'] != true;
+        final hasValidStatus =
+            data['status'] != 'deleted' && data['status'] != 'inactive';
+
+        // Eğer alanlar null ise varsayılan olarak aktif kabul et
+        final finalIsActive = data['isActive'] == null ? true : isActive;
+        final finalIsNotDeleted =
+            data['isDeleted'] == null ? true : isNotDeleted;
+        final finalHasValidStatus =
+            data['status'] == null ? true : hasValidStatus;
+
+        if (finalIsActive && finalIsNotDeleted && finalHasValidStatus) {
+          // Sürücünün bölge bilgisini al
+          String? regionInfo = data['regionId'] ??
+              data['assignedRegion'] ??
+              data['region'] ??
+              data['area'] ??
+              data['bolge'];
+          if (regionInfo != null) {
+            try {
+              final regionDoc = await FirebaseFirestore.instance
+                  .collection('regions')
+                  .doc(regionInfo)
+                  .get();
+
+              if (regionDoc.exists) {
+                final regionData = regionDoc.data()!;
+                final regionName = regionData['name'] ?? regionInfo;
+                data['regionName'] = regionName;
+                data['regionId'] = regionInfo; // Bölge ID'sini de sakla
+                print(
+                    '✅ Aktif sürücü eklendi: ${doc.id} - ${data['name'] ?? 'İsimsiz'} (Bölge: $regionName)');
+              } else {
+                data['regionName'] = regionInfo;
+                data['regionId'] = regionInfo;
+                print(
+                    '✅ Aktif sürücü eklendi: ${doc.id} - ${data['name'] ?? 'İsimsiz'} (Bölge: $regionInfo)');
+              }
+            } catch (e) {
+              data['regionName'] = regionInfo;
+              data['regionId'] = regionInfo;
+              print(
+                  '✅ Aktif sürücü eklendi: ${doc.id} - ${data['name'] ?? 'İsimsiz'} (Bölge: $regionInfo)');
+            }
+          } else {
+            print(
+                '✅ Aktif sürücü eklendi: ${doc.id} - ${data['name'] ?? 'İsimsiz'} (Bölge: Belirtilmemiş)');
+          }
+
+          activeDrivers.add({'id': doc.id, ...data});
+        } else {
+          print(
+              '❌ Sürücü filtrelendi: ${doc.id} - isActive: $finalIsActive, isDeleted: ${!finalIsNotDeleted}, status: ${!finalHasValidStatus}');
+        }
+      }
+
+      setState(() {
+        _drivers = activeDrivers;
+        if (activeDrivers.isNotEmpty) {
+          _selectDriver(activeDrivers.first);
+        }
+        _isLoading = false;
+      });
+
+      print('📊 Toplam aktif sürücü: ${activeDrivers.length}');
+    } catch (e) {
+      print('Sürücü yükleme hatası: $e');
+      setState(() {
+        _drivers = [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _selectDriver(Map<String, dynamic> driver) async {
+    try {
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      print('🔍 Şoför seçildi: ${driver['name'] ?? driver['id']}');
+      print('📅 Bugünün tarihi: $today');
+
+      // Şoföre ait durakları yükle
+      print(
+          '📍 Şoför ${driver['name']} için şoföre ait durakları yükleniyor...');
+      List<Map<String, dynamic>> stops = [];
+
+      // Şoförün atandığı bölgeyi bul
       final driverDoc = await FirebaseFirestore.instance
           .collection('drivers')
           .doc(driver['id'])
           .get();
+
       if (driverDoc.exists) {
         final driverData = driverDoc.data()!;
-        final location = driverData['location'];
-        if (location != null &&
-            location['lat'] != null &&
-            location['lng'] != null) {
-          setState(() {
-            _driverLocation = LatLng(location['lat'], location['lng']);
-          });
-          if (_mapController != null) {
-            _mapController!.animateCamera(
-              CameraUpdate.newLatLngZoom(_driverLocation!, 13),
-            );
+        String? assignedRegion = driverData['regionId'] ??
+            driverData['assignedRegion'] ??
+            driverData['region'] ??
+            driverData['area'] ??
+            driverData['bolge'];
+
+        if (assignedRegion != null) {
+          // Şoförün bölgesindeki durakları getir - sadece enhanced_stops koleksiyonundan
+          List<Map<String, dynamic>> regionStopsSnap = [];
+
+          print('🔍 Durak arama başlıyor...');
+          print('🔍 Bölge adı: $assignedRegion');
+          print('🔍 Bölge ID: ${driver['regionId']}');
+
+          // Sadece enhanced_stops koleksiyonundan durak getir
+          try {
+            print('🔍 Enhanced stops koleksiyonundan durak arama...');
+
+            // Önce bölge dokümanını kontrol et
+            final regionDoc = await FirebaseFirestore.instance
+                .collection('regions')
+                .doc(assignedRegion)
+                .get();
+
+            String? regionName;
+            if (regionDoc.exists) {
+              final regionData = regionDoc.data()!;
+              regionName = regionData['name'];
+              print('🔍 Bölge adı: $regionName');
+            }
+
+            final stopsQuery = await FirebaseFirestore.instance
+                .collection('enhanced_stops')
+                .where('isActive', isEqualTo: true)
+                .get();
+
+            // Bölge ID ile eşleşen durakları filtrele
+            regionStopsSnap = stopsQuery.docs.where((doc) {
+              final data = doc.data();
+
+              // Sadece aktif ve silinmemiş durakları al - daha sıkı kontrol
+              if (data['isActive'] != true ||
+                  data['isDeleted'] == true ||
+                  data['deletedAt'] != null ||
+                  data['status'] == 'deleted' ||
+                  data['status'] == 'inactive' ||
+                  data['deleted'] == true ||
+                  data['isArchived'] == true ||
+                  data['archived'] == true) {
+                print(
+                    '❌ Durak filtrelendi: ${data['name']} - isActive: ${data['isActive']}, isDeleted: ${data['isDeleted']}, deletedAt: ${data['deletedAt']}, status: ${data['status']}');
+                return false;
+              }
+
+              // Bölge bilgisini kontrol et
+              final stopRegionId = data['regionId'] ??
+                  data['assignedRegion'] ??
+                  data['region'] ??
+                  data['area'] ??
+                  data['bolge'];
+
+              // Bölge ID eşleşmesi
+              if (stopRegionId == assignedRegion) {
+                return true;
+              }
+
+              // Bölge adı eşleşmesi (eğer bölge ID bulunamazsa)
+              if (stopRegionId == null && regionName != null) {
+                final stopRegionName = data['region'] ??
+                    data['regionName'] ??
+                    data['area'] ??
+                    data['bolge'];
+
+                if (stopRegionName != null) {
+                  return stopRegionName.toString().toLowerCase() ==
+                      regionName.toString().toLowerCase();
+                }
+              }
+
+              return false;
+            }).map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return data;
+            }).toList();
+
+            print('🔍 Enhanced stops sonucu: ${regionStopsSnap.length} durak');
+
+            // Debug: Bulunan durakları listele
+            for (var stop in regionStopsSnap) {
+              print(
+                  '📍 Durak: ${stop['name']} - Bölge: ${stop['regionId'] ?? stop['region']} - Aktif: ${stop['isActive']} - Silinmiş: ${stop['isDeleted']} - Durum: ${stop['status']}');
+            }
+          } catch (e) {
+            print('❌ Enhanced stops arama hatası: $e');
           }
+
+          if (regionStopsSnap.isNotEmpty) {
+            // Sadece aktif, silinmemiş ve ana yol olmayan durakları filtrele
+            stops = regionStopsSnap.where((stop) {
+              final isActive = stop['isActive'] == true;
+              final isNotDeleted = stop['isDeleted'] != true;
+              final notDeletedAt = stop['deletedAt'] == null;
+              final hasValidStatus =
+                  stop['status'] != 'deleted' && stop['status'] != 'inactive';
+              final isNotMainRoad =
+                  stop['isMainRoad'] != true; // Ana yol duraklarını hariç tut
+
+              // Debug: Her durağın durumunu kontrol et
+              if (!isActive ||
+                  !isNotDeleted ||
+                  !notDeletedAt ||
+                  !hasValidStatus ||
+                  !isNotMainRoad) {
+                print(
+                    '❌ Durak filtrelendi: ${stop['name']} - isActive: $isActive, isDeleted: ${!isNotDeleted}, deletedAt: ${!notDeletedAt}, status: ${stop['status']}, isMainRoad: ${!isNotMainRoad}');
+                return false;
+              }
+
+              return true;
+            }).toList();
+
+            print(
+                '✅ Şoför ${driver['name']} bölgesinde (${driver['regionName']}) ${stops.length} aktif durak bulundu');
+
+            // Debug: Filtrelenmiş durakları listele
+            for (var stop in stops) {
+              print('✅ Aktif durak: ${stop['name']} - ID: ${stop['id']}');
+            }
+          } else {
+            print('❌ Şoför ${driver['name']} bölgesinde durak bulunamadı');
+          }
+        } else {
+          print('❌ Şoför ${driver['name']} için bölge bilgisi bulunamadı');
         }
       }
+
+      // Durakları güncelle
+      setState(() {
+        _stops = stops;
+        _selectedDriver = driver;
+        _trips = []; // Seferleri temizle
+      });
+
+      // Haritayı durakların konumuna taşı
+      if (stops.isNotEmpty) {
+        _moveMapToStops(stops);
+      }
+
+      // Şoförün konumunu yükle
+      print('📍 Şoför ${driver['name']} konumu yükleniyor...');
+      await _loadDriverLocation(driver['id']);
     } catch (e) {
-      print('Şoför konum bilgisi alınamadı: $e');
+      print('❌ Şoför seçimi hatası: $e');
     }
-    final stream = FirebaseFirestore.instance
-        .collection('drivers')
-        .doc(driver['id'])
-        .snapshots();
-    _locationSubscription = stream.listen((doc) {
-      if (doc.exists) {
-        final location = doc.data()?['location'];
-        if (location != null &&
-            location['lat'] != null &&
-            location['lng'] != null) {
-          final newLocation = LatLng(location['lat'], location['lng']);
-          setState(() {
-            _driverLocation = newLocation;
-          });
-          if (_mapController != null) {
-            _mapController!.animateCamera(
-              CameraUpdate.newLatLng(newLocation),
-            );
-          }
-          _updateNearestStop();
-        }
-      }
-    });
-    setState(() {
-      _selectedDriver = driver;
-      _stops = stops;
-      _trips = trips;
-    });
-    _startNearestStopUpdates();
   }
+
+  void _showDriverSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Şoför Seçin'),
+          content: Container(
+            width: double.maxFinite,
+            height: 300,
+            child: ListView.builder(
+              itemCount: _drivers.length,
+              itemBuilder: (context, index) {
+                final driver = _drivers[index];
+                return ListTile(
+                  leading: Icon(Icons.person, color: Colors.blue),
+                  title: Text(
+                    driver['name'] ?? driver['id'] ?? 'Bilinmeyen',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    'Bölge: ${driver['regionName'] ?? 'Bilinmeyen'}',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _selectDriver(driver);
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('İptal'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _startNearestStopUpdates() {
     _nearestStopTimer?.cancel();
     _nearestStopTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       _updateNearestStop();
     });
   }
+
   void _updateNearestStop() {
     if (_driverLocation == null || _stops.isEmpty) return;
     double minDistance = double.infinity;
     Map<String, dynamic>? nearest;
     for (var stop in _stops) {
+      // Koordinat kontrolü - hem lat/lng hem de latitude/longitude alanlarını kontrol et
+      double? lat, lng;
+
       if (stop['lat'] != null && stop['lng'] != null) {
-        final distance = _calculateDistance(
-          _driverLocation!.latitude,
-          _driverLocation!.longitude,
-          stop['lat'],
-          stop['lng'],
-        );
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearest = stop;
+        try {
+          lat = (stop['lat'] is int)
+              ? (stop['lat'] as int).toDouble()
+              : stop['lat'] as double?;
+          lng = (stop['lng'] is int)
+              ? (stop['lng'] as int).toDouble()
+              : stop['lng'] as double?;
+        } catch (e) {
+          print('❌ Durak ${stop['name']} koordinat dönüşüm hatası: $e');
+          continue;
         }
+      } else if (stop['latitude'] != null && stop['longitude'] != null) {
+        try {
+          lat = (stop['latitude'] is int)
+              ? (stop['latitude'] as int).toDouble()
+              : stop['latitude'] as double?;
+          lng = (stop['longitude'] is int)
+              ? (stop['longitude'] as int).toDouble()
+              : stop['longitude'] as double?;
+        } catch (e) {
+          print('❌ Durak ${stop['name']} koordinat dönüşüm hatası: $e');
+          continue;
+        }
+      }
+
+      if (lat == null || lng == null) {
+        continue;
+      }
+
+      final distance = _calculateDistance(
+        _driverLocation!.latitude,
+        _driverLocation!.longitude,
+        lat,
+        lng,
+      );
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearest = stop;
       }
     }
     if (nearest != null) {
@@ -145,6 +412,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       });
     }
   }
+
   double _calculateDistance(
       double lat1, double lon1, double lat2, double lon2) {
     const R = 6371;
@@ -158,22 +426,59 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return R * c;
   }
+
   double _degreesToRadians(double degrees) {
     return degrees * (pi / 180);
   }
+
   Set<Marker> _buildMarkers() {
     final markers = <Marker>{};
     for (var stop in _stops) {
+      // Koordinat kontrolü - hem lat/lng hem de latitude/longitude alanlarını kontrol et
+      double? lat, lng;
+
+      if (stop['lat'] != null && stop['lng'] != null) {
+        try {
+          lat = (stop['lat'] is int)
+              ? (stop['lat'] as int).toDouble()
+              : stop['lat'] as double?;
+          lng = (stop['lng'] is int)
+              ? (stop['lng'] as int).toDouble()
+              : stop['lng'] as double?;
+        } catch (e) {
+          print('❌ Durak ${stop['name']} koordinat dönüşüm hatası: $e');
+          continue;
+        }
+      } else if (stop['latitude'] != null && stop['longitude'] != null) {
+        try {
+          lat = (stop['latitude'] is int)
+              ? (stop['latitude'] as int).toDouble()
+              : stop['latitude'] as double?;
+          lng = (stop['longitude'] is int)
+              ? (stop['longitude'] as int).toDouble()
+              : stop['longitude'] as double?;
+        } catch (e) {
+          print('❌ Durak ${stop['name']} koordinat dönüşüm hatası: $e');
+          continue;
+        }
+      }
+
+      if (lat == null || lng == null) {
+        print(
+            '⚠️ Durak ${stop['name']} için koordinat bulunamadı: lat=${stop['lat'] ?? stop['latitude']}, lng=${stop['lng'] ?? stop['longitude']}');
+        continue;
+      }
+
       final isNearest = _nearestStop?['id'] == stop['id'];
       markers.add(
         Marker(
           markerId: MarkerId(stop['id']),
-          position: LatLng(stop['lat'], stop['lng']),
+          position: LatLng(lat, lng),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             isNearest ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed,
           ),
           infoWindow: InfoWindow(
-            title: stop['name'],
+            title: stop['name'] ?? 'Bilinmeyen Durak',
             snippet:
                 "Durum: ${stop['status'] ?? 'Bilinmiyor'}${isNearest ? ' (En Yakın)' : ''}",
           ),
@@ -192,16 +497,60 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     }
     return markers;
   }
+
   Widget _buildTripCard(Map<String, dynamic> trip) {
-    final departureTime = trip['departureTime'] != null
-        ? DateTime.parse(trip['departureTime'])
-        : null;
-    final arrivalTime = trip['arrivalTime'] != null
-        ? DateTime.parse(trip['arrivalTime'])
-        : null;
-    final isDelayed = trip['isDelayed'] ?? false;
-    final occupancy = trip['occupancy'] ?? 0;
-    final maxCapacity = trip['maxCapacity'] ?? 50;
+    // Sefer adını al (eğer varsa)
+    final tripName = trip['name'] ??
+        trip['routeName'] ??
+        trip['route'] ??
+        'Sefer ${trip['id'].toString().substring(0, 8)}...';
+
+    // Gerçek zaman verilerini al
+    String departureText = 'Belirtilmemiş';
+    String arrivalText = 'Belirtilmemiş';
+
+    try {
+      if (trip['departureTime'] != null) {
+        final departureTime = DateTime.parse(trip['departureTime']);
+        departureText = DateFormat('HH:mm').format(departureTime);
+      } else if (trip['departure'] != null) {
+        final departureTime = DateTime.parse(trip['departure']);
+        departureText = DateFormat('HH:mm').format(departureTime);
+      } else if (trip['startTime'] != null) {
+        final departureTime = DateTime.parse(trip['startTime']);
+        departureText = DateFormat('HH:mm').format(departureTime);
+      }
+    } catch (e) {
+      print('❌ Kalkış zamanı parse hatası: $e');
+    }
+
+    try {
+      if (trip['arrivalTime'] != null) {
+        final arrivalTime = DateTime.parse(trip['arrivalTime']);
+        arrivalText = DateFormat('HH:mm').format(arrivalTime);
+      } else if (trip['arrival'] != null) {
+        final arrivalTime = DateTime.parse(trip['arrival']);
+        arrivalText = DateFormat('HH:mm').format(arrivalTime);
+      } else if (trip['endTime'] != null) {
+        final arrivalTime = DateTime.parse(trip['endTime']);
+        arrivalText = DateFormat('HH:mm').format(arrivalTime);
+      }
+    } catch (e) {
+      print('❌ Varış zamanı parse hatası: $e');
+    }
+
+    final isDelayed = trip['isDelayed'] ?? trip['delayed'] ?? false;
+    final occupancy = trip['occupancy'] ??
+        trip['currentPassengers'] ??
+        trip['passengers'] ??
+        trip['currentCapacity'] ??
+        0;
+    final maxCapacity = trip['maxCapacity'] ??
+        trip['capacity'] ??
+        trip['totalCapacity'] ??
+        trip['maxPassengers'] ??
+        50;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       elevation: 3,
@@ -215,7 +564,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Sefer ${trip['id']}',
+                    tripName,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -256,7 +605,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              'Kalkış: ${departureTime != null ? DateFormat('HH:mm').format(departureTime) : 'Belirtilmemiş'}',
+                              'Kalkış: $departureText',
                               style: const TextStyle(fontSize: 12),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -271,7 +620,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              'Varış: ${arrivalTime != null ? DateFormat('HH:mm').format(arrivalTime) : 'Belirtilmemiş'}',
+                              'Varış: $arrivalText',
                               style: const TextStyle(fontSize: 12),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -311,141 +660,340 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       ),
     );
   }
+
   Widget _buildStopsList() {
     if (_stops.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: Text(
-            'Durak bulunamadı',
-            style: TextStyle(fontSize: 14),
+          child: Column(
+            children: [
+              Icon(Icons.location_off, size: 48, color: Colors.grey),
+              SizedBox(height: 8),
+              Text(
+                'Durak bulunamadı',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Durak yönetiminde aktif durak ekleyin',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );
     }
+
+    // Tüm durakları göster (koordinat kontrolü yapmadan)
+    final allStops = _stops;
+
     return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _stops.length,
+      padding: const EdgeInsets.all(8),
+      itemCount: allStops.length,
       itemBuilder: (context, index) {
-        final stop = _stops[index];
-        final isNearest = _nearestStop?['id'] == stop['id'];
-        final checkInTime = stop['checkInTime'] != null
-            ? DateTime.parse(stop['checkInTime'])
-            : null;
-        final checkOutTime = stop['checkOutTime'] != null
-            ? DateTime.parse(stop['checkOutTime'])
-            : null;
+        final stop = allStops[index];
+        final stopName = stop['name'] ?? stop['stopName'] ?? 'Bilinmeyen Durak';
+        final stopAddress =
+            stop['address'] ?? stop['location'] ?? 'Adres bilgisi yok';
+
+        // Koordinat bilgisini kontrol et
+        bool hasCoordinates = false;
+        String coordinateStatus = '';
+
+        if (stop['lat'] != null && stop['lng'] != null) {
+          hasCoordinates = true;
+          coordinateStatus = 'Koordinat: ${stop['lat']}, ${stop['lng']}';
+        } else if (stop['latitude'] != null && stop['longitude'] != null) {
+          hasCoordinates = true;
+          coordinateStatus =
+              'Koordinat: ${stop['latitude']}, ${stop['longitude']}';
+        } else {
+          coordinateStatus = 'Koordinat bilgisi eksik';
+        }
+
         return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          color: isNearest ? Colors.green.shade50 : null,
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          color: hasCoordinates ? Colors.white : Colors.orange.shade50,
+          child: ListTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: hasCoordinates
+                    ? Colors.blue.shade100
+                    : Colors.orange.shade200,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Icon(
+                  hasCoordinates ? Icons.location_on : Icons.location_off,
+                  color: hasCoordinates
+                      ? Colors.blue.shade700
+                      : Colors.orange.shade700,
+                  size: 20,
+                ),
+              ),
+            ),
+            title: Text(
+              stopName,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: hasCoordinates ? Colors.black : Colors.orange.shade800,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: isNearest ? Colors.green : Colors.blue,
-                    shape: BoxShape.circle,
+                Text(
+                  stopAddress,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
                   ),
-                  child: Center(
-                    child: Text(
-                      '${index + 1}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              stop['name'] ?? 'Bilinmeyen Durak',
-                              style: TextStyle(
-                                fontWeight: isNearest
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: 13,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (isNearest) ...[
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'EN YAKIN',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 7,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Durum: ${stop['status'] ?? 'Bilinmiyor'}',
-                        style:
-                            const TextStyle(fontSize: 11, color: Colors.grey),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (checkInTime != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          'Check-in: ${DateFormat('HH:mm').format(checkInTime)}',
-                          style:
-                              const TextStyle(fontSize: 11, color: Colors.grey),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      if (checkOutTime != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          'Check-out: ${DateFormat('HH:mm').format(checkOutTime)}',
-                          style:
-                              const TextStyle(fontSize: 11, color: Colors.grey),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
+                SizedBox(height: 2),
+                Text(
+                  coordinateStatus,
+                  style: TextStyle(
+                    color: hasCoordinates
+                        ? Colors.green.shade600
+                        : Colors.orange.shade600,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
-                ),
-                Icon(
-                  isNearest ? Icons.location_on : Icons.location_off,
-                  color: isNearest ? Colors.green : Colors.grey,
-                  size: 16,
                 ),
               ],
+            ),
+            trailing: Icon(
+              hasCoordinates ? Icons.location_on : Icons.warning,
+              color: hasCoordinates ? Colors.blue : Colors.orange,
+              size: 20,
             ),
           ),
         );
       },
     );
   }
+
+  void _loadStopsForDriver() {
+    if (_selectedDriver != null) {
+      _selectDriver(_selectedDriver!);
+    }
+  }
+
+  void _moveMapToStops(List<Map<String, dynamic>> stops) {
+    if (stops.isEmpty || _mapController == null) return;
+
+    try {
+      // Tüm durakların koordinatlarını topla
+      List<LatLng> stopCoordinates = [];
+
+      for (var stop in stops) {
+        double? lat, lng;
+
+        if (stop['lat'] != null && stop['lng'] != null) {
+          try {
+            lat = (stop['lat'] is int)
+                ? (stop['lat'] as int).toDouble()
+                : stop['lat'] as double?;
+            lng = (stop['lng'] is int)
+                ? (stop['lng'] as int).toDouble()
+                : stop['lng'] as double?;
+          } catch (e) {
+            print('❌ Durak ${stop['name']} koordinat dönüşüm hatası: $e');
+            continue;
+          }
+        } else if (stop['latitude'] != null && stop['longitude'] != null) {
+          try {
+            lat = (stop['latitude'] is int)
+                ? (stop['latitude'] as int).toDouble()
+                : stop['latitude'] as double?;
+            lng = (stop['longitude'] is int)
+                ? (stop['longitude'] as int).toDouble()
+                : stop['longitude'] as double?;
+          } catch (e) {
+            print('❌ Durak ${stop['name']} koordinat dönüşüm hatası: $e');
+            continue;
+          }
+        }
+
+        if (lat != null && lng != null) {
+          stopCoordinates.add(LatLng(lat, lng));
+        }
+      }
+
+      if (stopCoordinates.isNotEmpty) {
+        // Haritayı durakların merkezine taşı
+        final bounds = _calculateBounds(stopCoordinates);
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngBounds(bounds, 50.0),
+        );
+        print('✅ Harita durakların konumuna taşındı');
+      }
+    } catch (e) {
+      print('❌ Harita taşıma hatası: $e');
+    }
+  }
+
+  LatLngBounds _calculateBounds(List<LatLng> coordinates) {
+    if (coordinates.isEmpty) {
+      return LatLngBounds(
+        southwest: const LatLng(38.5, 35.0),
+        northeast: const LatLng(39.0, 36.0),
+      );
+    }
+
+    double minLat = coordinates.first.latitude;
+    double maxLat = coordinates.first.latitude;
+    double minLng = coordinates.first.longitude;
+    double maxLng = coordinates.first.longitude;
+
+    for (var coord in coordinates) {
+      if (coord.latitude < minLat) minLat = coord.latitude;
+      if (coord.latitude > maxLat) maxLat = coord.latitude;
+      if (coord.longitude < minLng) minLng = coord.longitude;
+      if (coord.longitude > maxLng) maxLng = coord.longitude;
+    }
+
+    // Biraz margin ekle
+    const margin = 0.01;
+    return LatLngBounds(
+      southwest: LatLng(minLat - margin, minLng - margin),
+      northeast: LatLng(maxLat + margin, maxLng + margin),
+    );
+  }
+
+  Future<void> _loadDriverTrips(String driverId, String today) async {
+    try {
+      List<Map<String, dynamic>> trips = [];
+
+      // Önce bugünün seferlerini dene
+      final tripsSnap = await FirebaseFirestore.instance
+          .collection('routes')
+          .doc(driverId)
+          .collection('dates')
+          .doc(today)
+          .collection('trips')
+          .get();
+
+      if (tripsSnap.docs.isNotEmpty) {
+        trips = tripsSnap.docs.map((e) => {'id': e.id, ...e.data()}).toList();
+        print('✅ Şoför bugün ${trips.length} sefer yapıyor');
+      } else {
+        // Bugün sefer yoksa genel seferleri dene
+        print('⚠️ Şoför bugün sefer yapmıyor, genel seferler deneniyor...');
+        final generalTripsSnap = await FirebaseFirestore.instance
+            .collection('routes')
+            .doc(driverId)
+            .collection('trips')
+            .get();
+
+        if (generalTripsSnap.docs.isNotEmpty) {
+          trips = generalTripsSnap.docs
+              .map((e) => {'id': e.id, ...e.data()})
+              .toList();
+          print('✅ Şoför genel rotasında ${trips.length} sefer bulundu');
+        } else {
+          print('⚠️ Şoför için hiç sefer bulunamadı');
+        }
+      }
+
+      // Seferleri sırala (eğer departureTime varsa)
+      if (trips.isNotEmpty) {
+        trips.sort((a, b) {
+          final timeA =
+              a['departureTime'] ?? a['departure'] ?? a['startTime'] ?? '';
+          final timeB =
+              b['departureTime'] ?? b['departure'] ?? b['startTime'] ?? '';
+          if (timeA.isEmpty && timeB.isEmpty) return 0;
+          if (timeA.isEmpty) return 1;
+          if (timeB.isEmpty) return -1;
+          try {
+            final dateA = DateTime.parse(timeA);
+            final dateB = DateTime.parse(timeB);
+            return dateA.compareTo(dateB);
+          } catch (e) {
+            return 0;
+          }
+        });
+      }
+
+      setState(() {
+        _trips = trips;
+      });
+    } catch (e) {
+      print('❌ Şoför sefer yükleme hatası: $e');
+      setState(() {
+        _trips = [];
+      });
+    }
+  }
+
+  Future<void> _loadDriverLocation(String driverId) async {
+    try {
+      final locationDoc = await FirebaseFirestore.instance
+          .collection('driver_locations')
+          .doc(driverId)
+          .get();
+
+      if (locationDoc.exists) {
+        final locationData = locationDoc.data()!;
+        final lat = locationData['lat'];
+        final lng = locationData['lng'];
+
+        if (lat != null && lng != null) {
+          setState(() {
+            _driverLocation = LatLng(
+              (lat is int) ? lat.toDouble() : lat as double,
+              (lng is int) ? lng.toDouble() : lng as double,
+            );
+          });
+          print('✅ Şoför konumu güncellendi: $_driverLocation');
+        } else {
+          print('⚠️ Şoför konum bilgisi eksik');
+        }
+      } else {
+        print('⚠️ Şoför konum dokümanı bulunamadı');
+      }
+
+      // Canlı konum takibi başlat
+      _locationSubscription?.cancel();
+      _locationSubscription = FirebaseFirestore.instance
+          .collection('driver_locations')
+          .doc(driverId)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          final data = snapshot.data()!;
+          final lat = data['lat'];
+          final lng = data['lng'];
+
+          if (lat != null && lng != null) {
+            setState(() {
+              _driverLocation = LatLng(
+                (lat is int) ? lat.toDouble() : lat as double,
+                (lng is int) ? lng.toDouble() : lng as double,
+              );
+            });
+          }
+        }
+      });
+    } catch (e) {
+      print('❌ Şoför konum yükleme hatası: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Servis Takip'),
+        title: const Text('Şoför Takibi'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -456,199 +1004,197 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
           },
         ),
       ),
-      body: _driverLocation == null
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  color: Colors.grey.shade50,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person, color: Colors.blue, size: 20),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Şoför:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Şoför Seçimi
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          spreadRadius: 1,
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: DropdownButtonFormField<Map<String, dynamic>>(
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 6),
-                            filled: true,
-                            fillColor: Colors.white,
-                            isDense: true,
-                          ),
-                          value:
-                              _selectedDriver.isEmpty ? null : _selectedDriver,
-                          hint: const Text(
-                            "Şoför Seçin",
-                            style: TextStyle(fontSize: 13),
-                          ),
-                          onChanged: (value) {
-                            if (value != null) _selectDriver(value);
-                          },
-                          items: _drivers
-                              .map(
-                                (driver) => DropdownMenuItem(
-                                  value: driver,
-                                  child: Text(
-                                    driver['name'] ?? driver['id'],
-                                    style: const TextStyle(fontSize: 13),
-                                    overflow: TextOverflow.ellipsis,
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.person, color: Colors.blue, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Şoför Seçimi',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () => _showDriverSelectionDialog(),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.person_outline, color: Colors.blue),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _selectedDriver != null
+                                            ? 'Şoför: ${_selectedDriver!['name'] ?? 'Bilinmeyen'}'
+                                            : 'Şoför seçin',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (_selectedDriver != null) ...[
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Bölge: ${_selectedDriver!['regionName'] ?? 'Bilinmeyen'}',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
-                              )
-                              .toList(),
+                                Icon(Icons.arrow_drop_down, color: Colors.grey),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_trips.isNotEmpty) ...[
-                  Container(
-                    height: 150,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _trips.length,
-                      itemBuilder: (context, index) {
-                        return SizedBox(
-                          width: 250,
-                          child: _buildTripCard(_trips[index]),
-                        );
-                      },
+                      ],
                     ),
                   ),
-                  const Divider(height: 1),
-                ],
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      if (constraints.maxWidth < 800) {
-                        return Column(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: GoogleMap(
-                                initialCameraPosition: CameraPosition(
-                                  target: _driverLocation ??
-                                      const LatLng(39.9334,
-                                          32.8597),
-                                  zoom: 13,
-                                ),
-                                markers: _buildMarkers(),
-                                onMapCreated: (controller) {
-                                  _mapController = controller;
-                                  if (_driverLocation != null) {
-                                    controller.animateCamera(
-                                      CameraUpdate.newLatLngZoom(
-                                          _driverLocation!, 13),
-                                    );
-                                  }
-                                },
-                              ),
-                            ),
-                            Container(
-                              height: 200,
-                              child: Column(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    color: Colors.grey.shade100,
-                                    child: const Row(
-                                      children: [
-                                        Icon(Icons.list,
-                                            color: Colors.blue, size: 20),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            'Durak Sırası',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _buildStopsList(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      } else {
-                        return Row(
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: GoogleMap(
-                                initialCameraPosition: CameraPosition(
-                                  target: _driverLocation ??
-                                      const LatLng(39.9334,
-                                          32.8597),
-                                  zoom: 13,
-                                ),
-                                markers: _buildMarkers(),
-                                onMapCreated: (controller) {
-                                  _mapController = controller;
-                                  if (_driverLocation != null) {
-                                    controller.animateCamera(
-                                      CameraUpdate.newLatLngZoom(
-                                          _driverLocation!, 13),
-                                    );
-                                  }
-                                },
-                              ),
-                            ),
-                            Container(
-                              width: 320,
-                              child: Column(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    color: Colors.grey.shade100,
-                                    child: const Row(
-                                      children: [
-                                        Icon(Icons.list,
-                                            color: Colors.blue, size: 20),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            'Durak Sırası',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _buildStopsList(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                    },
+                  // Harita Kısmı
+                  Container(
+                    height: 300,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: _driverLocation ?? _defaultLocation,
+                            zoom: 13,
+                          ),
+                          markers: _buildMarkers(),
+                          onMapCreated: (controller) {
+                            setState(() {
+                              _mapController = controller;
+                            });
+                            // Harita hazır olduğunda şoför konumuna git
+                            if (_driverLocation != null) {
+                              controller.animateCamera(
+                                CameraUpdate.newLatLngZoom(
+                                    _driverLocation!, 13),
+                              );
+                            }
+                          },
+                          myLocationEnabled: false,
+                          myLocationButtonEnabled: false,
+                          zoomControlsEnabled: true,
+                          mapToolbarEnabled: false,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  // Durak Sırası Kısmı
+                  Container(
+                    height: 300, // 200'den 300'e çıkarıldı
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          color: Colors.grey.shade100,
+                          child: Row(
+                            children: [
+                              Icon(Icons.list, color: Colors.blue, size: 20),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Durak Sırası',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey[800],
+                                      ),
+                                    ),
+                                    if (_selectedDriver != null) ...[
+                                      SizedBox(height: 4),
+                                      Text(
+                                        '${_selectedDriver!['name'] ?? 'Bilinmeyen'} - ${_selectedDriver!['regionName'] ?? 'Bilinmeyen'} Bölgesi',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (_stops.isNotEmpty) ...[
+                                Text(
+                                  '${_stops.length} Durak',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                IconButton(
+                                  onPressed: () => _loadStopsForDriver(),
+                                  icon: Icon(Icons.refresh, color: Colors.blue),
+                                  tooltip: 'Yenile',
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildStopsList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
     );
   }

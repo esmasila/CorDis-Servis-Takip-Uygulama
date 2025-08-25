@@ -15,6 +15,7 @@ import 'permissions_management_screen.dart';
 import 'notification_management_screen.dart';
 import '../utils/coordinate_fixer.dart';
 import '../utils/app_colors.dart';
+
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
   @override
@@ -174,7 +175,8 @@ class AdminScreen extends StatelessWidget {
                           ),
                           _buildMenuItem(
                             icon: Icons.assignment,
-                            title: 'Servis Atama',
+                            title: 'Servis Takip',
+                            subtitle: 'Servis atama ve durak sırası',
                             onTap: () => _navigateTo(
                               context,
                               const ServiceAssignmentScreen(),
@@ -464,6 +466,7 @@ class AdminScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildQuickActionCard(
     BuildContext context, {
     required IconData icon,
@@ -523,6 +526,7 @@ class AdminScreen extends StatelessWidget {
       ),
     );
   }
+
   void _showAutoRouteInfo(BuildContext context) {
     showDialog(
       context: context,
@@ -593,6 +597,7 @@ class AdminScreen extends StatelessWidget {
       ),
     );
   }
+
   void _showCoordinateFixDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -690,6 +695,7 @@ class AdminScreen extends StatelessWidget {
       ),
     );
   }
+
   void _startCoordinateFix(BuildContext context) async {
     showDialog(
       context: context,
@@ -749,6 +755,7 @@ class AdminScreen extends StatelessWidget {
       );
     }
   }
+
   Widget _buildSectionHeader(String title) {
     return Container(
       width: double.infinity,
@@ -764,6 +771,7 @@ class AdminScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildMenuItem({
     required IconData icon,
     required String title,
@@ -832,12 +840,14 @@ class AdminScreen extends StatelessWidget {
       ),
     );
   }
+
   void _navigateTo(BuildContext context, Widget screen) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => screen),
     );
   }
+
   void _logout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,

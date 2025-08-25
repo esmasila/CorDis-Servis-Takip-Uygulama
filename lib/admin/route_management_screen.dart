@@ -3,12 +3,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widget/snackbar.dart';
 import 'firestore_service.dart';
 import '../service/auto_route_service.dart';
+
 class RouteManagementScreen extends StatefulWidget {
   const RouteManagementScreen({super.key});
   @override
   State<RouteManagementScreen> createState() => _RouteManagementScreenState();
 }
-class _RouteManagementScreenState extends State<RouteManagementScreen> with SingleTickerProviderStateMixin {
+
+class _RouteManagementScreenState extends State<RouteManagementScreen>
+    with SingleTickerProviderStateMixin {
   String? _selectedRegionId;
   String? _selectedDriverId;
   late TabController _tabController;
@@ -17,11 +20,13 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
   }
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,6 +109,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ),
     );
   }
+
   Stream<QuerySnapshot> _buildRoutesStream() {
     Query query = FirebaseFirestore.instance.collection('routes');
     if (_selectedRegionId != null) {
@@ -114,6 +120,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
     }
     return query.orderBy('createdAt', descending: true).snapshots();
   }
+
   String _formatTime(dynamic timestamp) {
     if (timestamp == null) return 'Belirtilmemiş';
     try {
@@ -123,6 +130,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       return 'Geçersiz zaman';
     }
   }
+
   void _showAddRouteDialog() {
     final routeNameController = TextEditingController();
     String? selectedDriverId;
@@ -187,22 +195,57 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                           .collection('drivers')
                           .where('regionId', isEqualTo: selectedRegionId)
                           .where('status', isEqualTo: 'active')
+                          .where('isActive', isEqualTo: true)
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
                           return const CircularProgressIndicator();
                         }
+
+                        // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
+                        final activeDrivers = snapshot.data!.docs.where((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final isActive = data['isActive'] == true;
+                          final isNotDeleted = data['isDeleted'] != true;
+                          final hasValidStatus = data['status'] == 'active';
+
+                          // Eğer alanlar null ise varsayılan olarak aktif kabul et
+                          final finalIsActive =
+                              data['isActive'] == null ? true : isActive;
+                          final finalIsNotDeleted =
+                              data['isDeleted'] == null ? true : isNotDeleted;
+
+                          return finalIsActive &&
+                              finalIsNotDeleted &&
+                              hasValidStatus;
+                        }).toList();
+
+                        if (activeDrivers.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Bu bölgede aktif sürücü bulunamadı',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          );
+                        }
+
                         return DropdownButtonFormField<String>(
                           decoration: const InputDecoration(
                             labelText: 'Şoför',
                             border: OutlineInputBorder(),
                           ),
                           value: selectedDriverId,
-                          items: snapshot.data!.docs.map((doc) {
+                          items: activeDrivers.map((doc) {
                             final data = doc.data() as Map<String, dynamic>;
                             return DropdownMenuItem(
                               value: doc.id,
-                              child: Text('${data['name']} - ${data['vehiclePlate']}'),
+                              child: Text(
+                                  '${data['name']} - ${data['vehiclePlate']}'),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -258,17 +301,19 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  ...stops.map((stop) => ListTile(
-                    title: Text(stop['name']),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () {
-                        setDialogState(() {
-                          stops.remove(stop);
-                        });
-                      },
-                    ),
-                  )).toList(),
+                  ...stops
+                      .map((stop) => ListTile(
+                            title: Text(stop['name']),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () {
+                                setDialogState(() {
+                                  stops.remove(stop);
+                                });
+                              },
+                            ),
+                          ))
+                      .toList(),
                   ElevatedButton(
                     onPressed: () => _addStopToRoute(setDialogState, stops),
                     child: const Text('Durak Ekle'),
@@ -298,12 +343,18 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                 try {
                   final now = DateTime.now();
                   final startDateTime = DateTime(
-                    now.year, now.month, now.day,
-                    startTime!.hour, startTime!.minute,
+                    now.year,
+                    now.month,
+                    now.day,
+                    startTime!.hour,
+                    startTime!.minute,
                   );
                   final endDateTime = DateTime(
-                    now.year, now.month, now.day,
-                    endTime!.hour, endTime!.minute,
+                    now.year,
+                    now.month,
+                    now.day,
+                    endTime!.hour,
+                    endTime!.minute,
                   );
                   await AdminFirestoreService.createRoute(
                     driverId: selectedDriverId!,
@@ -329,7 +380,9 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ),
     );
   }
-  void _addStopToRoute(StateSetter setDialogState, List<Map<String, dynamic>> stops) {
+
+  void _addStopToRoute(
+      StateSetter setDialogState, List<Map<String, dynamic>> stops) {
     final stopNameController = TextEditingController();
     showDialog(
       context: context,
@@ -366,12 +419,16 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ),
     );
   }
+
   void _editRoute(String routeId, Map<String, dynamic> route) {
     _showEditRouteDialog(routeId, route);
   }
+
   void _showEditRouteDialog(String routeId, Map<String, dynamic> route) {
-    final routeNameController = TextEditingController(text: route['routeName'] ?? '');
-    List<Map<String, dynamic>> stops = List<Map<String, dynamic>>.from(route['stops'] ?? []);
+    final routeNameController =
+        TextEditingController(text: route['routeName'] ?? '');
+    List<Map<String, dynamic>> stops =
+        List<Map<String, dynamic>>.from(route['stops'] ?? []);
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -411,7 +468,8 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                           children: [
                             IconButton(
                               icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _editStopInRoute(setDialogState, stops, index),
+                              onPressed: () => _editStopInRoute(
+                                  setDialogState, stops, index),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
@@ -475,8 +533,11 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ),
     );
   }
-  void _editStopInRoute(StateSetter setDialogState, List<Map<String, dynamic>> stops, int index) {
-    final stopNameController = TextEditingController(text: stops[index]['name'] ?? '');
+
+  void _editStopInRoute(
+      StateSetter setDialogState, List<Map<String, dynamic>> stops, int index) {
+    final stopNameController =
+        TextEditingController(text: stops[index]['name'] ?? '');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -511,7 +572,9 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ),
     );
   }
-  void _addStopToEditRoute(StateSetter setDialogState, List<Map<String, dynamic>> stops) {
+
+  void _addStopToEditRoute(
+      StateSetter setDialogState, List<Map<String, dynamic>> stops) {
     final stopNameController = TextEditingController();
     showDialog(
       context: context,
@@ -548,6 +611,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ),
     );
   }
+
   void _deleteRoute(String routeId) {
     showDialog(
       context: context,
@@ -582,6 +646,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ),
     );
   }
+
   void _generateTodayRoutes() async {
     try {
       showDialog(
@@ -619,17 +684,20 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
               successCount++;
             } else {
               errorCount++;
-              print('[RouteManagement] Şoför $driverId için rota hatası: $result');
+              print(
+                  '[RouteManagement] Şoför $driverId için rota hatası: $result');
             }
           } catch (e) {
             errorCount++;
-            print('[RouteManagement] Şoför $driverId için rota oluşturma hatası: $e');
+            print(
+                '[RouteManagement] Şoför $driverId için rota oluşturma hatası: $e');
           }
         }
       }
       Navigator.pop(context);
       showSnackBar(
-        text: 'Bugün için rotalar oluşturuldu! Başarılı: $successCount, Hatalı: $errorCount',
+        text:
+            'Bugün için rotalar oluşturuldu! Başarılı: $successCount, Hatalı: $errorCount',
         backgroundColor: errorCount > 0 ? Colors.orange : Colors.green,
       );
     } catch (e) {
@@ -640,6 +708,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       );
     }
   }
+
   void _generateTomorrowRoutes() async {
     try {
       showDialog(
@@ -677,17 +746,20 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
               successCount++;
             } else {
               errorCount++;
-              print('[RouteManagement] Şoför $driverId için rota hatası: $result');
+              print(
+                  '[RouteManagement] Şoför $driverId için rota hatası: $result');
             }
           } catch (e) {
             errorCount++;
-            print('[RouteManagement] Şoför $driverId için rota oluşturma hatası: $e');
+            print(
+                '[RouteManagement] Şoför $driverId için rota oluşturma hatası: $e');
           }
         }
       }
       Navigator.pop(context);
       showSnackBar(
-        text: 'Yarın için rotalar oluşturuldu! Başarılı: $successCount, Hatalı: $errorCount',
+        text:
+            'Yarın için rotalar oluşturuldu! Başarılı: $successCount, Hatalı: $errorCount',
         backgroundColor: errorCount > 0 ? Colors.orange : Colors.green,
       );
     } catch (e) {
@@ -698,6 +770,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       );
     }
   }
+
   Widget _buildRouteManagementTab() {
     return Column(
       children: [
@@ -752,11 +825,43 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                   .collection('drivers')
                   .where('regionId', isEqualTo: _selectedRegionId)
                   .where('status', isEqualTo: 'active')
+                  .where('isActive', isEqualTo: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const CircularProgressIndicator();
                 }
+
+                // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
+                final activeDrivers = snapshot.data!.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final isActive = data['isActive'] == true;
+                  final isNotDeleted = data['isDeleted'] != true;
+                  final hasValidStatus = data['status'] == 'active';
+
+                  // Eğer alanlar null ise varsayılan olarak aktif kabul et
+                  final finalIsActive =
+                      data['isActive'] == null ? true : isActive;
+                  final finalIsNotDeleted =
+                      data['isDeleted'] == null ? true : isNotDeleted;
+
+                  return finalIsActive && finalIsNotDeleted && hasValidStatus;
+                }).toList();
+
+                if (activeDrivers.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'Bu bölgede aktif sürücü bulunamadı',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }
+
                 return DropdownButtonFormField<String>(
                   decoration: const InputDecoration(
                     labelText: 'Şoför Seçin',
@@ -768,11 +873,12 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                       value: null,
                       child: Text('Tüm Şoförler'),
                     ),
-                    ...snapshot.data!.docs.map((doc) {
+                    ...activeDrivers.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       return DropdownMenuItem(
                         value: doc.id,
-                        child: Text('${data['name']} - ${data['vehiclePlate']}'),
+                        child:
+                            Text('${data['name']} - ${data['vehiclePlate']}'),
                       );
                     }).toList(),
                   ],
@@ -814,12 +920,13 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                   final route = routes[index].data() as Map<String, dynamic>;
                   final routeId = routes[index].id;
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: ExpansionTile(
                       leading: Icon(
                         Icons.route,
-                        color: route['status'] == 'active' 
-                            ? Colors.green 
+                        color: route['status'] == 'active'
+                            ? Colors.green
                             : Colors.orange,
                       ),
                       title: Text(
@@ -831,13 +938,17 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                         children: [
                           Text('Durum: ${route['status'] ?? 'Bilinmeyen'}'),
                           if (route['startTime'] != null)
-                            Text('Başlangıç: ${_formatTime(route['startTime'])}'),
+                            Text(
+                                'Başlangıç: ${_formatTime(route['startTime'])}'),
                           if (route['endTime'] != null)
                             Text('Bitiş: ${_formatTime(route['endTime'])}'),
-                          Text('Durak Sayısı: ${(route['stops'] as List?)?.length ?? 0}'),
+                          Text(
+                              'Durak Sayısı: ${(route['stops'] as List?)?.length ?? 0}'),
                           if (route['updatedAt'] != null)
-                            Text('Son Güncelleme: ${_formatTime(route['updatedAt'])}',
-                                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                            Text(
+                                'Son Güncelleme: ${_formatTime(route['updatedAt'])}',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey.shade600)),
                         ],
                       ),
                       children: [
@@ -847,26 +958,31 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Duraklar:',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   ElevatedButton.icon(
-                                    onPressed: () => _addQuickStopToRoute(routeId),
+                                    onPressed: () =>
+                                        _addQuickStopToRoute(routeId),
                                     icon: const Icon(Icons.add, size: 16),
                                     label: const Text('Hızlı Ekle'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green.shade600,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              if (route['stops'] != null && (route['stops'] as List).isNotEmpty)
+                              if (route['stops'] != null &&
+                                  (route['stops'] as List).isNotEmpty)
                                 ...List.generate(
                                   (route['stops'] as List).length,
                                   (stopIndex) {
@@ -880,10 +996,13 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                                           child: Text('${stopIndex + 1}'),
                                           backgroundColor: Colors.blue.shade100,
                                         ),
-                                        title: Text(stop['name'] ?? 'İsimsiz Durak'),
+                                        title: Text(
+                                            stop['name'] ?? 'İsimsiz Durak'),
                                         trailing: IconButton(
-                                          icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
-                                          onPressed: () => _removeStopFromRoute(routeId, stopIndex),
+                                          icon: const Icon(Icons.remove_circle,
+                                              color: Colors.red, size: 20),
+                                          onPressed: () => _removeStopFromRoute(
+                                              routeId, stopIndex),
                                         ),
                                       ),
                                     );
@@ -892,12 +1011,14 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                               else
                                 const Padding(
                                   padding: EdgeInsets.all(8.0),
-                                  child: Text('Henüz durak eklenmemiş.', 
-                                             style: TextStyle(fontStyle: FontStyle.italic)),
+                                  child: Text('Henüz durak eklenmemiş.',
+                                      style: TextStyle(
+                                          fontStyle: FontStyle.italic)),
                                 ),
                               const SizedBox(height: 16),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () => _editRoute(routeId, route),
@@ -933,6 +1054,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ],
     );
   }
+
   Widget _buildRouteLogsTab() {
     return Column(
       children: [
@@ -986,11 +1108,46 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                     stream: FirebaseFirestore.instance
                         .collection('drivers')
                         .where('regionId', isEqualTo: _selectedRegionId)
+                        .where('status', isEqualTo: 'active')
+                        .where('isActive', isEqualTo: true)
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return const CircularProgressIndicator();
                       }
+
+                      // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
+                      final activeDrivers = snapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final isActive = data['isActive'] == true;
+                        final isNotDeleted = data['isDeleted'] != true;
+                        final hasValidStatus = data['status'] == 'active';
+
+                        // Eğer alanlar null ise varsayılan olarak aktif kabul et
+                        final finalIsActive =
+                            data['isActive'] == null ? true : isActive;
+                        final finalIsNotDeleted =
+                            data['isDeleted'] == null ? true : isNotDeleted;
+
+                        return finalIsActive &&
+                            finalIsNotDeleted &&
+                            hasValidStatus;
+                      }).toList();
+
+                      if (activeDrivers.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Bu bölgede aktif sürücü bulunamadı',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
                       return DropdownButtonFormField<String>(
                         decoration: const InputDecoration(
                           labelText: 'Şoför',
@@ -1002,7 +1159,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                             value: null,
                             child: Text('Tüm Şoförler'),
                           ),
-                          ...snapshot.data!.docs.map((doc) {
+                          ...activeDrivers.map((doc) {
                             final data = doc.data() as Map<String, dynamic>;
                             return DropdownMenuItem(
                               value: doc.id,
@@ -1051,12 +1208,13 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                   final log = logs[index].data() as Map<String, dynamic>;
                   final logId = logs[index].id;
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: ExpansionTile(
                       leading: Icon(
                         Icons.history,
-                        color: log['status'] == 'completed' 
-                            ? Colors.green 
+                        color: log['status'] == 'completed'
+                            ? Colors.green
                             : log['status'] == 'in_progress'
                                 ? Colors.orange
                                 : Colors.grey,
@@ -1071,7 +1229,8 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                           Text('Şoför: ${log['driverName'] ?? 'Bilinmeyen'}'),
                           Text('Durum: ${_getStatusText(log['status'])}'),
                           if (log['startTime'] != null)
-                            Text('Başlangıç: ${_formatDateTime(log['startTime'])}'),
+                            Text(
+                                'Başlangıç: ${_formatDateTime(log['startTime'])}'),
                           if (log['endTime'] != null)
                             Text('Bitiş: ${_formatDateTime(log['endTime'])}'),
                         ],
@@ -1120,28 +1279,34 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  stopLog['stopName'] ?? 'İsimsiz Durak',
+                                                  stopLog['stopName'] ??
+                                                      'İsimsiz Durak',
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
-                                                if (stopLog['visitTime'] != null)
+                                                if (stopLog['visitTime'] !=
+                                                    null)
                                                   Text(
                                                     'Ziyaret: ${_formatDateTime(stopLog['visitTime'])}',
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: Colors.grey.shade600,
+                                                      color:
+                                                          Colors.grey.shade600,
                                                     ),
                                                   ),
-                                                if (stopLog['passengerCount'] != null)
+                                                if (stopLog['passengerCount'] !=
+                                                    null)
                                                   Text(
                                                     'Yolcu Sayısı: ${stopLog['passengerCount']}',
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: Colors.grey.shade600,
+                                                      color:
+                                                          Colors.grey.shade600,
                                                     ),
                                                   ),
                                               ],
@@ -1165,7 +1330,8 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                                   '${(log['totalDuration'] / 60).toStringAsFixed(0)} dakika',
                                   Icons.access_time,
                                 ),
-                              if (log['completedStops'] != null && log['totalStops'] != null)
+                              if (log['completedStops'] != null &&
+                                  log['totalStops'] != null)
                                 _buildLogInfoItem(
                                   'Tamamlanan Duraklar',
                                   '${log['completedStops']}/${log['totalStops']}',
@@ -1185,6 +1351,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ],
     );
   }
+
   Widget _buildLogInfoItem(String title, String value, IconData icon) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1213,6 +1380,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       ),
     );
   }
+
   Stream<QuerySnapshot> _buildRouteLogsStream() {
     Query query = FirebaseFirestore.instance
         .collection('route_logs')
@@ -1225,6 +1393,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
     }
     return query.limit(50).snapshots();
   }
+
   String _formatDateTime(dynamic timestamp) {
     if (timestamp == null) return 'Belirtilmemiş';
     try {
@@ -1234,6 +1403,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       return 'Geçersiz tarih';
     }
   }
+
   String _getStatusText(String? status) {
     switch (status) {
       case 'completed':
@@ -1246,6 +1416,7 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
         return 'Bilinmeyen';
     }
   }
+
   void _addQuickStopToRoute(String routeId) {
     showDialog(
       context: context,
@@ -1296,7 +1467,9 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
             ),
             ElevatedButton(
               onPressed: () async {
-                if (stopName.isNotEmpty && latitude != null && longitude != null) {
+                if (stopName.isNotEmpty &&
+                    latitude != null &&
+                    longitude != null) {
                   try {
                     final newStop = {
                       'name': stopName,
@@ -1304,7 +1477,8 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
                       'longitude': longitude,
                       'addedAt': FieldValue.serverTimestamp(),
                     };
-                    await AdminFirestoreService.addStopToRoute(routeId, newStop);
+                    await AdminFirestoreService.addStopToRoute(
+                        routeId, newStop);
                     if (mounted) {
                       Navigator.pop(context);
                       showSnackBar(
@@ -1334,12 +1508,14 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
       },
     );
   }
+
   void _removeStopFromRoute(String routeId, int stopIndex) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Durak Sil'),
-        content: const Text('Bu durağı rotadan silmek istediğinizden emin misiniz?'),
+        content:
+            const Text('Bu durağı rotadan silmek istediğinizden emin misiniz?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1348,7 +1524,8 @@ class _RouteManagementScreenState extends State<RouteManagementScreen> with Sing
           ElevatedButton(
             onPressed: () async {
               try {
-                await AdminFirestoreService.removeStopFromRoute(routeId, stopIndex);
+                await AdminFirestoreService.removeStopFromRoute(
+                    routeId, stopIndex);
                 if (mounted) {
                   Navigator.pop(context);
                   showSnackBar(

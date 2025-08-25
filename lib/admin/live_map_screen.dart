@@ -8,11 +8,13 @@ import '../service/stop_tracking_service.dart';
 import '../utils/marker_color_helper.dart';
 import '../models/stop_model.dart';
 import '../models/region_model.dart';
+
 class EnhancedLiveMapScreen extends StatefulWidget {
   const EnhancedLiveMapScreen({super.key});
   @override
   _EnhancedLiveMapScreenState createState() => _EnhancedLiveMapScreenState();
 }
+
 class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
   GoogleMapController? _mapController;
   final Set<Marker> _markers = <Marker>{};
@@ -64,7 +66,10 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
   void initState() {
     super.initState();
     _initializeEnhancedMap();
+    // Mevcut konuma git
+    _getCurrentLocationAndCenter();
   }
+
   void _initializeEnhancedMap() {
     _loadServices();
     _loadDrivers();
@@ -72,6 +77,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     _startAutoRefresh();
     if (_showStops) _loadStops();
   }
+
   @override
   void dispose() {
     _locationSub?.cancel();
@@ -83,6 +89,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     _refreshTimer?.cancel();
     super.dispose();
   }
+
   void _startAutoRefresh() {
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (mounted) {
@@ -93,40 +100,110 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       }
     });
   }
+
   void _loadServices() {
     _servicesSub = FirebaseFirestore.instance
         .collection('services')
         .snapshots()
         .listen((snapshot) {
       final services = <String, dynamic>{};
+      final allServices = <String, dynamic>{};
+
+      print('🔍 Toplam servis sayısı: ${snapshot.docs.length}');
+
       for (var doc in snapshot.docs) {
-        services[doc.id] = doc.data();
+        final data = doc.data();
+        allServices[doc.id] = data;
+
+        // Debug: Her servisin durumunu yazdır
+        print(
+            '🔍 Servis ${doc.id}: isActive=${data['isActive']}, name=${data['name']}');
+
+        // Daha esnek filtreleme yap
+        bool isActive = data['isActive'] == true;
+
+        // Eğer isActive yoksa, varsayılan olarak aktif kabul et
+        if (data['isActive'] == null) {
+          isActive = true;
+        }
+
+        if (isActive) {
+          services[doc.id] = data;
+        }
       }
+
       if (mounted) {
         setState(() {
           _services = services;
         });
+        print('📊 Filtrelenmiş servisler: ${services.length} servis');
+        print('📊 Tüm servisler: ${allServices.length}');
+        print('📊 Filtreleme sonrası: ${services.length}');
       }
+    }, onError: (error) {
+      print('❌ Servis yükleme hatası: $error');
     });
   }
+
   void _loadDrivers() {
     _driversSub = FirebaseFirestore.instance
         .collection('drivers')
         .snapshots()
         .listen((snapshot) {
       final drivers = <String, dynamic>{};
+      final allDrivers = <String, dynamic>{};
+
+      print('🔍 Toplam şoför sayısı: ${snapshot.docs.length}');
+
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        if (data['vehiclePlate'] != null &&
-            data['vehiclePlate'].toString().isNotEmpty) {
+        allDrivers[doc.id] = data;
+
+        // Debug: Her şoförün durumunu yazdır
+        print(
+            '🔍 Şoför ${doc.id}: isActive=${data['isActive']}, isDeleted=${data['isDeleted']}, status=${data['status']}, plate=${data['vehiclePlate']}');
+
+        // Daha esnek filtreleme yap
+        bool isActive = data['isActive'] == true;
+        bool isNotDeleted = data['isDeleted'] != true;
+        bool hasValidStatus =
+            data['status'] != 'deleted' && data['status'] != 'inactive';
+        bool hasPlate = data['vehiclePlate'] != null &&
+            data['vehiclePlate'].toString().isNotEmpty;
+
+        // Eğer isActive yoksa, varsayılan olarak aktif kabul et
+        if (data['isActive'] == null) {
+          isActive = true;
+        }
+
+        // Eğer isDeleted yoksa, varsayılan olarak silinmemiş kabul et
+        if (data['isDeleted'] == null) {
+          isNotDeleted = true;
+        }
+
+        // Eğer status yoksa, varsayılan olarak geçerli kabul et
+        if (data['status'] == null) {
+          hasValidStatus = true;
+        }
+
+        // Sadece gerçekten aktif ve geçerli sürücüleri ekle
+        if (isActive && isNotDeleted && hasValidStatus && hasPlate) {
           drivers[doc.id] = data;
+          print(
+              '✅ Aktif sürücü eklendi: ${doc.id} - ${data['name'] ?? 'İsimsiz'}');
+        } else {
+          print(
+              '❌ Sürücü filtrelendi: ${doc.id} - isActive: $isActive, isDeleted: ${!isNotDeleted}, status: ${!hasValidStatus}, hasPlate: $hasPlate');
         }
       }
+
       if (mounted) {
         setState(() {
           _drivers = drivers;
         });
-        print('📊 Sürücüler yüklendi: ${drivers.length} kayıtlı araç');
+        print('📊 Filtrelenmiş sürücüler: ${drivers.length} kayıtlı araç');
+        print('📊 Tüm şoförler: ${allDrivers.length}');
+        print('📊 Filtreleme sonrası: ${drivers.length}');
       }
     }, onError: (error) {
       print('❌ Sürücü yükleme hatası: $error');
@@ -136,21 +213,24 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       );
     });
   }
+
   void _listenServiceLocations() {
     Query query = FirebaseFirestore.instance.collection('live_locations');
-    if (_selectedRegionId != null) {
+    if (_selectedRegionId != null && _selectedRegionId.toString().isNotEmpty) {
       query = query.where('regionId', isEqualTo: _selectedRegionId);
     }
-    if (_selectedServiceId != null) {
+    if (_selectedServiceId != null &&
+        _selectedServiceId.toString().isNotEmpty) {
       query = query.where('serviceId', isEqualTo: _selectedServiceId);
     }
-    if (_selectedDriverId != null) {
+    if (_selectedDriverId != null && _selectedDriverId.toString().isNotEmpty) {
       query = query.where('driverId', isEqualTo: _selectedDriverId);
     }
-    if (_selectedVehicleType != null) {
+    if (_selectedVehicleType != null &&
+        _selectedVehicleType.toString().isNotEmpty) {
       query = query.where('vehicleType', isEqualTo: _selectedVehicleType);
     }
-    if (_selectedShift != null) {
+    if (_selectedShift != null && _selectedShift.toString().isNotEmpty) {
       query = query.where('shift', isEqualTo: _selectedShift);
     }
     _locationSub?.cancel();
@@ -162,6 +242,37 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
           final lat = (data['lat'] as num?)?.toDouble() ?? 0.0;
           final lng = (data['lng'] as num?)?.toDouble() ?? 0.0;
           if (lat != 0.0 && lng != 0.0) {
+            // Şoför kontrolü yap
+            final driverId = data['driverId'];
+            if (driverId == null ||
+                !_drivers.containsKey(driverId.toString())) {
+              print('⚠️ Şoför bulunamadı: $driverId');
+              continue; // Bu şoför bulunamadı, atla
+            }
+
+            // Şoför durumunu kontrol et
+            final driverData = _drivers[driverId.toString()];
+            if (driverData == null) {
+              continue;
+            }
+
+            // Daha esnek durum kontrolü
+            bool isActive = driverData['isActive'] == true;
+            bool isNotDeleted = driverData['isDeleted'] != true;
+            bool hasValidStatus = driverData['status'] != 'deleted' &&
+                driverData['status'] != 'inactive';
+
+            // Eğer alanlar yoksa varsayılan olarak geçerli kabul et
+            if (driverData['isActive'] == null) isActive = true;
+            if (driverData['isDeleted'] == null) isNotDeleted = true;
+            if (driverData['status'] == null) hasValidStatus = true;
+
+            if (!isActive || !isNotDeleted || !hasValidStatus) {
+              print(
+                  '⚠️ Şoför filtrelendi: $driverId - isActive: $isActive, isDeleted: ${!isNotDeleted}, status: ${!hasValidStatus}');
+              continue;
+            }
+
             final timestamp = data['timestamp'] as Timestamp?;
             final lastUpdate = timestamp?.toDate();
             final isOnline = lastUpdate != null &&
@@ -212,6 +323,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       },
     );
   }
+
   String _getVehicleStatus(Map<String, dynamic> data, DateTime? lastUpdate) {
     if (lastUpdate == null) return 'offline';
     final now = DateTime.now();
@@ -224,6 +336,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     if (!isInRoute) return 'off_route';
     return 'waiting';
   }
+
   double _getMarkerColorByStatus(String status) {
     switch (status) {
       case 'moving':
@@ -238,6 +351,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
         return BitmapDescriptor.hueBlue;
     }
   }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'moving':
@@ -252,6 +366,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
         return Colors.blue;
     }
   }
+
   String _getStatusText(String status) {
     switch (status) {
       case 'moving':
@@ -266,25 +381,62 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
         return 'Bilinmiyor';
     }
   }
+
   String _getServiceDisplayName(String? serviceId) {
-    if (serviceId == null) return '-';
-    final service = _services[serviceId];
-    if (service == null) return serviceId;
-    return service['name'] ??
+    if (serviceId == null || serviceId.toString().isEmpty)
+      return 'Belirtilmemiş';
+
+    final service = _services[serviceId.toString()];
+    if (service == null) {
+      // Servis bulunamadıysa, servis ID'sini göster
+      print(
+          '⚠️ Servis bulunamadı: $serviceId, Mevcut servisler: ${_services.keys.toList()}');
+      return 'Servis ID: $serviceId';
+    }
+
+    // Servis adını farklı alanlardan almayı dene
+    final serviceName = service['name'] ??
         service['serviceName'] ??
         service['title'] ??
-        serviceId;
+        service['displayName'] ??
+        service['service_name'] ??
+        'Bilinmeyen Servis';
+
+    print('✅ Servis bulundu: $serviceId -> $serviceName');
+    return serviceName.toString();
   }
+
   String _getDriverDisplayName(String? driverId) {
-    if (driverId == null) return '-';
-    final driver = _drivers[driverId];
-    if (driver == null) return driverId;
-    return driver['name'] ??
+    if (driverId == null || driverId.toString().isEmpty) return 'Belirtilmemiş';
+
+    final driver = _drivers[driverId.toString()];
+    if (driver == null) {
+      // Şoför bulunamadıysa, şoför ID'sini göster
+      return 'Silinmiş Sürücü';
+    }
+
+    // Sürücü durumunu kontrol et
+    final isActive = driver['isActive'] == true;
+    final isNotDeleted = driver['isDeleted'] != true;
+    final hasValidStatus =
+        driver['status'] != 'deleted' && driver['status'] != 'inactive';
+
+    // Eğer sürücü pasif veya silinmişse
+    if (!isActive || !isNotDeleted || !hasValidStatus) {
+      return 'Pasif Sürücü';
+    }
+
+    // Şoför adını farklı alanlardan almayı dene
+    final driverName = driver['name'] ??
         driver['driverName'] ??
         driver['fullName'] ??
         driver['firstName'] ??
-        driverId;
+        driver['displayName'] ??
+        'Bilinmeyen Şoför';
+
+    return driverName.toString();
   }
+
   String _formatTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
@@ -298,9 +450,9 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       return '⏱ ${difference.inDays} gün önce';
     }
   }
+
   void _applyMarkerClustering() {
-    if (_markers.length < 100)
-      return;
+    if (_markers.length < 100) return;
     final vehicleMarkers =
         _markers.where((m) => !m.markerId.value.startsWith('stop_')).toList();
     if (vehicleMarkers.length < 100) return;
@@ -337,11 +489,14 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       _markers.addAll(clusteredMarkers);
     });
   }
+
   String _getClusterKey(LatLng position, double radius) {
+    if (radius <= 0) return '0_0';
     final lat = (position.latitude / radius).round();
     final lng = (position.longitude / radius).round();
     return '${lat}_$lng';
   }
+
   double _getClusterRadius(double zoom) {
     if (zoom < 10) return 0.1;
     if (zoom < 12) return 0.05;
@@ -349,7 +504,12 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     if (zoom < 16) return 0.01;
     return 0.005;
   }
+
   LatLng _calculateClusterCenter(List<Marker> markers) {
+    if (markers.isEmpty) {
+      return const LatLng(39.9334, 32.8597); // Ankara varsayılan koordinatı
+    }
+
     double totalLat = 0;
     double totalLng = 0;
     for (final marker in markers) {
@@ -358,6 +518,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     }
     return LatLng(totalLat / markers.length, totalLng / markers.length);
   }
+
   void _showClusterDetails(List<Marker> markers, LatLng center) {
     showModalBottomSheet(
       context: context,
@@ -442,21 +603,27 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   Map<String, dynamic>? _getMarkerData(String markerId) {
     try {
+      if (markerId.isEmpty) return null;
       final docId = markerId.replaceFirst('vehicle_', '');
+      if (docId.isEmpty) return null;
       return _vehicleData[docId];
     } catch (e) {
+      print('Marker verisi alınırken hata: $e');
       return null;
     }
   }
+
   void _focusOnMarker(Marker marker) {
-    if (_mapController != null) {
+    if (_mapController != null && marker.markerId.value.isNotEmpty) {
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(marker.position, 16),
       );
     }
   }
+
   void _loadStops() {
     if (!_showStops) {
       setState(() {
@@ -468,9 +635,11 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     }
     Query stopsQuery = FirebaseFirestore.instance
         .collection('enhanced_stops')
-        .where('isActive', isEqualTo: true);
-    if (_selectedRegionId != null) {
-      stopsQuery = stopsQuery.where('regionId', isEqualTo: _selectedRegionId);
+        .where('isActive', isEqualTo: true)
+        .where('createdFromMap', isEqualTo: true);
+    if (_selectedRegionId != null && _selectedRegionId.toString().isNotEmpty) {
+      stopsQuery =
+          stopsQuery.where('regionId', isEqualTo: _selectedRegionId.toString());
     }
     _stopsSub?.cancel();
     _stopsSub = stopsQuery.snapshots().listen((snapshot) {
@@ -519,12 +688,15 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       }
     });
   }
+
   void _centerMapToRegion() async {
-    if (_selectedRegionId != null && _mapController != null) {
+    if (_selectedRegionId != null &&
+        _selectedRegionId.toString().isNotEmpty &&
+        _mapController != null) {
       try {
         final regionDoc = await FirebaseFirestore.instance
             .collection('regions')
-            .doc(_selectedRegionId)
+            .doc(_selectedRegionId.toString())
             .get();
         if (regionDoc.exists) {
           final data = regionDoc.data()!;
@@ -538,10 +710,12 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
           }
         }
       } catch (e) {
+        print('Bölge merkezi alınırken hata: $e');
       }
       _centerMapToRegionMarkers();
     }
   }
+
   void _centerMapToRegionMarkers() {
     if (_markers.isNotEmpty && _mapController != null) {
       double minLat = double.infinity;
@@ -565,7 +739,51 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       );
     }
   }
+
   void _showDriverDetails(String driverId, Map<String, dynamic> data) {
+    // Şoför bilgilerini _drivers koleksiyonundan al
+    final driverInfo = _drivers[driverId];
+
+    // Sürücü durumunu kontrol et
+    if (driverInfo == null) {
+      showSnackBar(
+        text: 'Sürücü bilgileri bulunamadı',
+        backgroundColor: Colors.red.shade700,
+      );
+      return;
+    }
+
+    // Sürücünün aktif olup olmadığını kontrol et
+    final isActive = driverInfo['isActive'] == true;
+    final isNotDeleted = driverInfo['isDeleted'] != true;
+    final hasValidStatus =
+        driverInfo['status'] != 'deleted' && driverInfo['status'] != 'inactive';
+
+    // Eğer sürücü pasif veya silinmişse uyarı göster
+    if (!isActive || !isNotDeleted || !hasValidStatus) {
+      showSnackBar(
+        text: 'Bu sürücü artık aktif değil',
+        backgroundColor: Colors.orange.shade700,
+      );
+      return;
+    }
+
+    final vehiclePlate =
+        driverInfo['vehiclePlate'] ?? data['vehiclePlate'] ?? 'Belirtilmemiş';
+
+    // Servis bilgilerini _services koleksiyonundan al
+    final serviceId = data['serviceId'];
+    String serviceName = 'Belirtilmemiş';
+    if (serviceId != null && serviceId.toString().isNotEmpty) {
+      serviceName = _getServiceDisplayName(serviceId);
+      // Debug için servis bilgilerini yazdır
+      print('🔍 Servis detayları - ID: $serviceId, Ad: $serviceName');
+      print('🔍 Mevcut servisler: ${_services.keys.toList()}');
+    }
+
+    // Bölge bilgilerini regions koleksiyonundan al
+    final regionId = data['regionId'];
+
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -579,9 +797,27 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
-            _buildDetailRow('Plaka', data['vehiclePlate'] ?? 'Belirtilmemiş'),
-            _buildDetailRow('Servis ID', data['serviceId'] ?? 'Belirtilmemiş'),
-            _buildDetailRow('Bölge ID', data['regionId'] ?? 'Belirtilmemiş'),
+            _buildDetailRow('Plaka', vehiclePlate),
+            _buildDetailRow('Servis', serviceName),
+            if (regionId != null && regionId.toString().isNotEmpty) ...[
+              FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('regions')
+                    .doc(regionId.toString())
+                    .get(),
+                builder: (context, snapshot) {
+                  String regionName = 'Bilinmeyen Bölge';
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    final regionData =
+                        snapshot.data!.data() as Map<String, dynamic>?;
+                    regionName = regionData?['name'] ?? 'Bilinmeyen Bölge';
+                  }
+                  return _buildDetailRow('Bölge', regionName);
+                },
+              ),
+            ] else ...[
+              _buildDetailRow('Bölge', 'Belirtilmemiş'),
+            ],
             _buildDetailRow('Hız', '${data['speed'] ?? 0} km/h'),
             _buildDetailRow('Yön', '${data['bearing'] ?? 0}°'),
             const SizedBox(height: 16),
@@ -615,6 +851,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   void _showStopTrackingDetails(String stopId, Map<String, dynamic> stopData) {
     showModalBottomSheet(
       context: context,
@@ -731,8 +968,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
                           const SizedBox(height: 8),
                           FutureBuilder<List<Map<String, dynamic>>>(
                             future: StopTrackingService.getDailyStopReport(
-                              driverId:
-                                  'admin',
+                              driverId: 'admin',
                             ),
                             builder: (context, visitSnapshot) {
                               if (visitSnapshot.connectionState ==
@@ -765,6 +1001,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   Widget _buildStatsCard(
       String title, String value, IconData icon, Color color) {
     return Card(
@@ -785,6 +1022,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   Widget _buildVisitCard(Map<String, dynamic> visit) {
     final arrivalTime = (visit['arrivalTime'] as Timestamp?)?.toDate();
     final departureTime = (visit['departureTime'] as Timestamp?)?.toDate();
@@ -827,6 +1065,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -844,7 +1083,35 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   void _trackDriver(String driverId) {
+    if (driverId.isEmpty) return;
+
+    // Sürücü durumunu kontrol et
+    final driverInfo = _drivers[driverId];
+    if (driverInfo == null) {
+      showSnackBar(
+        text: 'Sürücü bilgileri bulunamadı',
+        backgroundColor: Colors.red.shade700,
+      );
+      return;
+    }
+
+    // Sürücünün aktif olup olmadığını kontrol et
+    final isActive = driverInfo['isActive'] == true;
+    final isNotDeleted = driverInfo['isDeleted'] != true;
+    final hasValidStatus =
+        driverInfo['status'] != 'deleted' && driverInfo['status'] != 'inactive';
+
+    // Eğer sürücü pasif veya silinmişse uyarı göster
+    if (!isActive || !isNotDeleted || !hasValidStatus) {
+      showSnackBar(
+        text: 'Bu sürücü artık aktif değil',
+        backgroundColor: Colors.orange.shade700,
+      );
+      return;
+    }
+
     setState(() {
       _selectedDriverId = driverId;
       _isTrackingDriver = true;
@@ -866,7 +1133,35 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       }
     });
   }
+
   void _showRouteHistory(String driverId) {
+    if (driverId.isEmpty) return;
+
+    // Sürücü durumunu kontrol et
+    final driverInfo = _drivers[driverId];
+    if (driverInfo == null) {
+      showSnackBar(
+        text: 'Sürücü bilgileri bulunamadı',
+        backgroundColor: Colors.red.shade700,
+      );
+      return;
+    }
+
+    // Sürücünün aktif olup olmadığını kontrol et
+    final isActive = driverInfo['isActive'] == true;
+    final isNotDeleted = driverInfo['isDeleted'] != true;
+    final hasValidStatus =
+        driverInfo['status'] != 'deleted' && driverInfo['status'] != 'inactive';
+
+    // Eğer sürücü pasif veya silinmişse uyarı göster
+    if (!isActive || !isNotDeleted || !hasValidStatus) {
+      showSnackBar(
+        text: 'Bu sürücü artık aktif değil',
+        backgroundColor: Colors.orange.shade700,
+      );
+      return;
+    }
+
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
     FirebaseFirestore.instance
         .collection('location_history')
@@ -898,8 +1193,15 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
         });
         _fitPolylineInView(points);
       }
+    }).catchError((error) {
+      print('Rota geçmişi alınırken hata: $error');
+      showSnackBar(
+        text: 'Rota geçmişi alınırken hata: $error',
+        backgroundColor: Colors.red.shade700,
+      );
     });
   }
+
   void _fitPolylineInView(List<LatLng> points) {
     if (points.isEmpty || _mapController == null) return;
     double minLat = points.first.latitude;
@@ -920,10 +1222,12 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       CameraUpdate.newLatLngBounds(bounds, 100),
     );
   }
+
   String _formatTime(DateTime dateTime) {
     return '${dateTime.hour.toString().padLeft(2, '0')}:'
         '${dateTime.minute.toString().padLeft(2, '0')}';
   }
+
   Widget _buildAdvancedFilters() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -995,6 +1299,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ],
     );
   }
+
   Widget _buildRegionFilter() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -1049,6 +1354,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       },
     );
   }
+
   Widget _buildServiceFilter() {
     if (_services.isEmpty) return const SizedBox.shrink();
     return DropdownButtonFormField<String>(
@@ -1068,10 +1374,12 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
           final serviceName = entry.value['name'] ??
               entry.value['serviceName'] ??
               entry.value['title'] ??
+              entry.value['displayName'] ??
+              entry.value['service_name'] ??
               entry.key;
           return DropdownMenuItem(
             value: entry.key,
-            child: Text(serviceName),
+            child: Text(serviceName.toString()),
           );
         }),
       ],
@@ -1083,8 +1391,41 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       },
     );
   }
+
   Widget _buildDriverFilter() {
     if (_drivers.isEmpty) return const SizedBox.shrink();
+
+    // Sadece aktif sürücüleri filtrele
+    final activeDrivers = _drivers.entries.where((entry) {
+      final data = entry.value;
+      final isActive = data['isActive'] == true;
+      final isNotDeleted = data['isDeleted'] != true;
+      final hasValidStatus =
+          data['status'] != 'deleted' && data['status'] != 'inactive';
+
+      // Eğer alanlar null ise varsayılan olarak aktif kabul et
+      final finalIsActive = data['isActive'] == null ? true : isActive;
+      final finalIsNotDeleted = data['isDeleted'] == null ? true : isNotDeleted;
+      final finalHasValidStatus =
+          data['status'] == null ? true : hasValidStatus;
+
+      return finalIsActive && finalIsNotDeleted && finalHasValidStatus;
+    }).toList();
+
+    if (activeDrivers.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Text(
+          'Aktif sürücü bulunamadı',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(
         labelText: 'Şoför',
@@ -1098,15 +1439,16 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
           value: null,
           child: Text('Tüm Şoförler'),
         ),
-        ..._drivers.entries.map((entry) {
+        ...activeDrivers.map((entry) {
           final driverName = entry.value['name'] ??
               entry.value['driverName'] ??
               entry.value['fullName'] ??
               entry.value['firstName'] ??
-              entry.key;
+              entry.value['displayName'] ??
+              'Bilinmeyen Sürücü';
           return DropdownMenuItem(
             value: entry.key,
-            child: Text(driverName),
+            child: Text(driverName.toString()),
           );
         }),
       ],
@@ -1118,6 +1460,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       },
     );
   }
+
   Widget _buildVehicleTypeFilter() {
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(
@@ -1147,6 +1490,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       },
     );
   }
+
   Widget _buildShiftFilter() {
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(
@@ -1176,6 +1520,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       },
     );
   }
+
   void _clearAllFilters() {
     setState(() {
       _selectedRegionId = null;
@@ -1188,6 +1533,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     _listenServiceLocations();
     if (_showStops) _loadStops();
   }
+
   void _showMapOptions() {
     showModalBottomSheet(
       context: context,
@@ -1315,6 +1661,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   void _clearTrackingAndRoutes() {
     setState(() {
       _polylines.clear();
@@ -1322,6 +1669,32 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       _selectedDriverId = null;
     });
   }
+
+  void _getCurrentLocationAndCenter() async {
+    try {
+      final position = await Geolocator.getCurrentPosition();
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            LatLng(position.latitude, position.longitude),
+            15,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Mevcut konum alınamadı: $e');
+      // Hata durumunda varsayılan konuma git (Ankara)
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            const LatLng(39.9334, 32.8597),
+            11,
+          ),
+        );
+      }
+    }
+  }
+
   void _centerMapToCurrentLocation() async {
     try {
       final position = await Geolocator.getCurrentPosition();
@@ -1338,6 +1711,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       );
     }
   }
+
   Widget _buildTopControlPanel() {
     return Card(
       child: Padding(
@@ -1363,6 +1737,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   Widget _buildBottomStatsPanel() {
     final vehicleMarkers = _markers
         .where((m) =>
@@ -1373,10 +1748,15 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
         _markers.where((m) => m.markerId.value.startsWith('cluster_')).length;
     final stopMarkers =
         _markers.where((m) => m.markerId.value.startsWith('stop_')).length;
+
+    // Sadece aktif sürücülerin sayısını göster
     final totalRegisteredVehicles = _drivers.length;
     final activeVehicles = vehicleMarkers;
+
     print(
         '📊 BottomStatsPanel - Toplam araç: $totalRegisteredVehicles, Aktif: $activeVehicles');
+    print('📊 _drivers koleksiyonu: ${_drivers.keys.toList()}');
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -1396,7 +1776,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
                           ),
                     ),
                     Text(
-                      'Toplam Araç',
+                      'Aktif Araç',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -1479,6 +1859,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   Widget _buildRightControlPanel() {
     return Column(
       children: [
@@ -1538,6 +1919,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ],
     );
   }
+
   void _showAdvancedFiltersDialog() {
     showModalBottomSheet(
       context: context,
@@ -1616,6 +1998,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

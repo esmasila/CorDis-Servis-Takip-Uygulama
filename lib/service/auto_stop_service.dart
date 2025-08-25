@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'geocoding_service.dart';
 
 class AutoStopService {
-  static const double _proximityThreshold = 100.0;
+  static const double _proximityThreshold = 100.0; // Orijinal değer: 100 metre
   static const double _mainRoadSearchRadius = 1000.0;
   static const String _googleMapsApiKey = String.fromEnvironment(
     'GOOGLE_MAPS_API_KEY',
@@ -21,46 +21,88 @@ class AutoStopService {
   }) async {
     try {
       if (address.trim().isEmpty) return;
+
+      print(
+          '[AutoStopService] Yolcu adresi işleniyor: $passengerName - $address');
+
       final coordinates = await _getCoordinatesFromAddress(address);
       if (coordinates == null) {
         print('Adres koordinatlara çevrilemedi: $address');
         return;
       }
+
+      // Önce yakın konumda durak var mı kontrol et
+      final nearbyStop = await _findNearbyStop(
+        coordinates['lat']!,
+        coordinates['lng']!,
+        regionId,
+      );
+
+      if (nearbyStop != null) {
+        print('[AutoStopService] Yakın durak bulundu: ${nearbyStop['name']}');
+
+        // Yolcu zaten bu durakta mı kontrol et
+        final existingPassengerIds =
+            List<String>.from(nearbyStop['passengerIds'] ?? []);
+        if (!existingPassengerIds.contains(passengerId)) {
+          await _addPassengerToExistingStop(
+            nearbyStop['id'],
+            passengerId,
+            passengerName,
+            address,
+          );
+          print(
+              '[AutoStopService] ✅ Yolcu mevcut durağa eklendi: ${nearbyStop['name']}');
+        } else {
+          print(
+              '[AutoStopService] ℹ️ Yolcu zaten bu durakta: ${nearbyStop['name']}');
+        }
+        return;
+      }
+
+      // Yakın durak yoksa, yolcunun mevcut durağını kontrol et
+      final existingPassengerStop =
+          await _findExistingPassengerStop(passengerId, regionId);
+
+      if (existingPassengerStop != null) {
+        print(
+            '[AutoStopService] Yolcunun mevcut durağı bulundu, güncelleniyor: ${existingPassengerStop['name']}');
+
+        // Mevcut durağı yeni konuma taşı
+        await _updateStopLocation(
+          existingPassengerStop['id'],
+          coordinates['lat']!,
+          coordinates['lng']!,
+          address,
+        );
+
+        print(
+            '[AutoStopService] ✅ Mevcut durak güncellendi: ${existingPassengerStop['name']}');
+        return;
+      }
+
+      // Hiç durak yoksa yeni oluştur
       final optimalStopLocation = await _findOptimalStopLocationByRoadWidth(
         homeLatitude: coordinates['lat']!,
         homeLongitude: coordinates['lng']!,
         regionId: regionId,
       );
-      final nearbyStop = await _findNearbyStop(
-        optimalStopLocation['lat']!,
-        optimalStopLocation['lng']!,
-        regionId,
+
+      await _createNewAutoStop(
+        passengerId: passengerId,
+        passengerName: passengerName,
+        address: address,
+        homeLatitude: coordinates['lat']!,
+        homeLongitude: coordinates['lng']!,
+        stopLatitude: optimalStopLocation['lat']!,
+        stopLongitude: optimalStopLocation['lng']!,
+        stopAddress: optimalStopLocation['address']!,
+        regionId: regionId,
       );
-      if (nearbyStop != null) {
-        await _addPassengerToExistingStop(
-          nearbyStop['id'],
-          passengerId,
-          passengerName,
-          address,
-        );
-        print('Yolcu mevcut durağa eklendi: ${nearbyStop['name']}');
-      } else {
-        await _createNewAutoStop(
-          passengerId: passengerId,
-          passengerName: passengerName,
-          address: address,
-          homeLatitude: coordinates['lat']!,
-          homeLongitude: coordinates['lng']!,
-          stopLatitude: optimalStopLocation['lat']!,
-          stopLongitude: optimalStopLocation['lng']!,
-          stopAddress: optimalStopLocation['address']!,
-          regionId: regionId,
-        );
-        print(
-            'Ana yol üzerinde yeni otomatik durak oluşturuldu: ${optimalStopLocation['address']}');
-      }
+      print(
+          '[AutoStopService] ✅ Ana yol üzerinde yeni otomatik durak oluşturuldu: ${optimalStopLocation['address']}');
     } catch (e) {
-      print('Otomatik durak işlemi hatası: $e');
+      print('[AutoStopService] ❌ Otomatik durak işlemi hatası: $e');
     }
   }
 
@@ -103,10 +145,17 @@ class AutoStopService {
           .where('regionId', isEqualTo: regionId)
           .where('isActive', isEqualTo: true)
           .get();
+      
+      Map<String, dynamic>? closestStop;
+      double? closestDistance;
+      Map<String, dynamic>? extendedStop;
+      double? extendedDistance;
+      
       for (final doc in stopsSnapshot.docs) {
         final data = doc.data();
         final stopLat = data['latitude'] as double?;
         final stopLng = data['longitude'] as double?;
+        
         if (stopLat != null && stopLng != null) {
           final distance = Geolocator.distanceBetween(
             latitude,
@@ -114,16 +163,50 @@ class AutoStopService {
             stopLat,
             stopLng,
           );
+          
+          // 500 metre içindeki en yakın durak
           if (distance <= _proximityThreshold) {
-            return {
-              'id': doc.id,
-              'name': data['name'],
-              'distance': distance,
-              ...data,
-            };
+            if (closestDistance == null || distance < closestDistance) {
+              closestDistance = distance;
+              closestStop = {
+                'id': doc.id,
+                'name': data['name'],
+                'distance': distance,
+                ...data,
+              };
+            }
+          }
+          
+          // 1000 metre içindeki en yakın durak (yolcu sayısı az olan)
+          if (distance <= 1000.0) {
+            final passengerCount = (data['passengerCount'] ?? 0) as int;
+            if (passengerCount < 3) { // Yolcu sayısı 3'ten az olan duraklara ekle
+              if (extendedDistance == null || distance < extendedDistance) {
+                extendedDistance = distance;
+                extendedStop = {
+                  'id': doc.id,
+                  'name': data['name'],
+                  'distance': distance,
+                  ...data,
+                };
+              }
+            }
           }
         }
       }
+      
+      // Önce 500 metre içindeki durağı kullan
+      if (closestStop != null) {
+        print('[AutoStopService] En yakın durak bulundu: ${closestStop['name']} (${closestDistance?.toStringAsFixed(1)}m)');
+        return closestStop;
+      }
+      
+      // 500 metre içinde durak yoksa, 1000 metre içindeki az yolculu durağı kullan
+      if (extendedStop != null) {
+        print('[AutoStopService] Genişletilmiş arama ile durak bulundu: ${extendedStop['name']} (${extendedDistance?.toStringAsFixed(1)}m)');
+        return extendedStop;
+      }
+      
     } catch (e) {
       print('Yakın durak arama hatası: $e');
     }
@@ -1190,6 +1273,57 @@ class AutoStopService {
       print('✅ Periyodik optimizasyon tamamlandı');
     } catch (e) {
       print('Periyodik optimizasyon hatası: $e');
+    }
+  }
+
+  // Yolcunun mevcut durağını bul
+  static Future<Map<String, dynamic>?> _findExistingPassengerStop(
+    String passengerId,
+    String regionId,
+  ) async {
+    try {
+      final stopsSnapshot = await FirebaseFirestore.instance
+          .collection('enhanced_stops')
+          .where('regionId', isEqualTo: regionId)
+          .where('isActive', isEqualTo: true)
+          .where('passengerIds', arrayContains: passengerId)
+          .limit(1)
+          .get();
+
+      if (stopsSnapshot.docs.isNotEmpty) {
+        final doc = stopsSnapshot.docs.first;
+        return {
+          'id': doc.id,
+          ...doc.data(),
+        };
+      }
+      return null;
+    } catch (e) {
+      print('[AutoStopService] Yolcunun mevcut durağını bulma hatası: $e');
+      return null;
+    }
+  }
+
+  // Durak konumunu güncelle
+  static Future<void> _updateStopLocation(
+    String stopId,
+    double latitude,
+    double longitude,
+    String address,
+  ) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('enhanced_stops')
+          .doc(stopId)
+          .update({
+        'latitude': latitude,
+        'longitude': longitude,
+        'address': address,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+      print('[AutoStopService] Durak konumu güncellendi: $stopId');
+    } catch (e) {
+      print('[AutoStopService] Durak konumu güncelleme hatası: $e');
     }
   }
 }

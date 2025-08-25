@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +18,7 @@ import '../service/geocoding_service.dart';
 import '../service/background_location_service.dart';
 import '../service/distance_notification_service.dart';
 import '../service/avatar_marker_service.dart';
+import '../service/stop_completion_tracker.dart';
 import '../service/automatic_permission_service.dart';
 import '../service/simulation_service.dart';
 import '../service/eta_calculation_service.dart';
@@ -28,6 +30,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class EnhancedMapScreen extends StatefulWidget {
   final String driverId;
   final String regionId;
@@ -41,6 +44,7 @@ class EnhancedMapScreen extends StatefulWidget {
   @override
   State<EnhancedMapScreen> createState() => _EnhancedMapScreenState();
 }
+
 class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
   GoogleMapController? _mapController;
   Position? _currentPosition;
@@ -67,6 +71,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       setState(() => _polylines.clear());
     }
   }
+
   bool _isTestSimulating = false;
   Timer? _simulationTimer;
   int _simulationIndex = 0;
@@ -103,12 +108,27 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     _initializeMap();
     _resolveDriverRegionAndStartStreams();
     _initializeNewServices();
+
+    // Durak tamamlama takibini başlat
+    StopCompletionTracker().startTracking(
+      driverId: widget.driverId,
+      onStopsUpdated: () {
+        if (kDebugMode) {
+          print('🔄 StopCompletionTracker onStopsUpdated callback çağrıldı');
+        }
+        if (mounted) {
+          _updateMarkers();
+        }
+      },
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _centerMapOnCurrentPosition();
       _syncLocationSharingStatus();
       _startPeriodicStatusCheck();
     });
   }
+
   Future<void> _resolveDriverRegionAndStartStreams() async {
     try {
       _effectiveRegionId = widget.regionId;
@@ -141,6 +161,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       _startRealTimeUpdates();
     }
   }
+
   Future<void> _autoStartLocationSharingOnEnter() async {}
   @override
   void dispose() {
@@ -150,6 +171,10 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       _isTestSimulating = false;
       print('🛑 Harita kapatılırken simülasyon durduruldu');
     }
+
+    // Durak tamamlama takibini durdur
+    StopCompletionTracker().stopTracking();
+
     _stopsSubscription?.cancel();
     _routeUpdateTimer?.cancel();
     _proximityCheckTimer?.cancel();
@@ -159,6 +184,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     RouteHistoryService.stopRouteTracking(widget.driverId);
     super.dispose();
   }
+
   Future<void> _centerMapOnCurrentPosition() async {
     try {
       if (_isSimulationMode) {
@@ -197,6 +223,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Harita ortalama hatası: $e');
     }
   }
+
   void _syncLocationSharingStatus() {
     final isSharing = UserSession.isLocationSharing;
     print(
@@ -211,6 +238,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('🔄 Konum paylaşım durumu senkronize edildi: $_isLiveTracking');
     }
   }
+
   void _startPeriodicStatusCheck() {
     Timer.periodic(Duration(seconds: 2), (timer) {
       if (!mounted) {
@@ -227,6 +255,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       }
     });
   }
+
   Future<void> _initializeNewServices() async {
     try {
       await VoiceNavigationService.initializeTTS();
@@ -237,6 +266,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Yeni servisler başlatma hatası: $e');
     }
   }
+
   Future<void> _initializeMap() async {
     try {
       _currentPosition = await LocationService.instance.getCurrentPosition();
@@ -256,6 +286,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       });
     }
   }
+
   Future<void> _loadStops() async {
     try {
       final region = _effectiveRegionId ?? widget.regionId;
@@ -326,6 +357,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Duraklar yükleme hatası: $e');
     }
   }
+
   void _startRealTimeUpdates() {
     final region = _effectiveRegionId ?? widget.regionId;
     print('🎯 Real-time updates başlatılıyor - Bölge: $region');
@@ -466,6 +498,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     print(
         '🔄 Real-time güncellemeler başlatıldı - tüm aktif duraklar dinleniyor');
   }
+
   void _handleStopsUpdate(QuerySnapshot snapshot) async {
     try {
       print('🔄 Durak güncellemesi başlıyor - ${snapshot.docs.length} durak');
@@ -557,6 +590,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Durak güncelleme hatası: $e');
     }
   }
+
   bool _stopsChanged(List<StopModel> newStops) {
     if (_stops.length != newStops.length) return true;
     for (int i = 0; i < _stops.length; i++) {
@@ -569,6 +603,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     }
     return false;
   }
+
   void _updateRouteIfNeeded() async {
     if (_isSimulationMode) {
       print('⏸️ Rota güncellemesi atlandı - simülasyon modunda');
@@ -598,6 +633,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Konum güncelleme hatası: $e');
     }
   }
+
   Future<void> _optimizeRoute() async {
     if (_currentPosition == null || _stops.isEmpty) return;
     try {
@@ -649,16 +685,17 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       });
     }
   }
+
   Future<void> _updateMapElements() async {
     await _updateMarkers();
     await _updatePolylines();
   }
+
   Future<void> _addCurrentUserMarker(Set<Marker> markers) async {
     try {
       final userPhotoUrl = UserSession.photoUrl;
       final userProfileIcon = await AvatarMarkerService.createAvatarMarker(
-        profileImageUrl:
-            userPhotoUrl,
+        profileImageUrl: userPhotoUrl,
         stopNumber: 0,
         size: 80,
       );
@@ -685,7 +722,12 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('Kullanıcı profil marker\'ı eklenirken hata: $e');
     }
   }
+
   Future<void> _updateMarkers() async {
+    if (kDebugMode) {
+      print(
+          '🎨 _updateMarkers çağrıldı - isSimulationMode: $_isSimulationMode');
+    }
     Set<Marker> markers = {};
     if (_currentPosition != null) {
       final carIcon = await AvatarMarkerService.createEmojiMarker(
@@ -728,11 +770,17 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
           print('Profil fotoğrafı alınamadı: $e');
         }
       }
+      final bool isCompleted = StopCompletionTracker().isStopCompleted(stop.id);
+      if (kDebugMode) {
+        print(
+            '🎨 Marker oluşturuluyor: ${stop.address} - isCompleted: $isCompleted');
+      }
       final BitmapDescriptor markerIcon =
           await AvatarMarkerService.createAvatarMarker(
         profileImageUrl: profilePhotoUrl,
         stopNumber: i + 1,
         size: 110,
+        isCompleted: isCompleted,
       );
       final passengerNames = await _getPassengerNamesForStop(stop);
       markers.add(
@@ -752,6 +800,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       _markers = markers;
     });
   }
+
   Future<void> _drawRoute() async {
     if (_currentPosition == null ||
         _optimizedRoute.isEmpty ||
@@ -903,6 +952,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       _isRouteActive = false;
     }
   }
+
   Future<void> _drawCleanSimpleRoute() async {
     if (_currentPosition == null ||
         _optimizedRoute.isEmpty ||
@@ -946,6 +996,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     }
     print('📍 Temiz basit rota çizildi (${points.length} nokta)');
   }
+
   void _fitMapToRoute(List<LatLng> points) {
     if (points.isEmpty || _mapController == null) return;
     double minLat = points.first.latitude;
@@ -966,9 +1017,11 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       CameraUpdate.newLatLngBounds(bounds, 100.0),
     );
   }
+
   Future<void> _updatePolylines() async {
     await _drawRoute();
   }
+
   Future<List<String>> _getPassengerPhotos(String passengerId) async {
     if (passengerId.isEmpty) return [];
     try {
@@ -980,6 +1033,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       return [];
     }
   }
+
   void _navigateToStop(StopModel stop) async {
     try {
       if (_currentPosition == null) {
@@ -1039,6 +1093,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       );
     }
   }
+
   void _navigateToAllStops() async {
     try {
       if (_currentPosition == null || _optimizedRoute.isEmpty) {
@@ -1108,6 +1163,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       );
     }
   }
+
   Future<void> _fitMapToAllStops(List<StopModel> stops) async {
     if (_mapController == null || stops.isEmpty || _currentPosition == null)
       return;
@@ -1147,6 +1203,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Harita sığdırma hatası: $e');
     }
   }
+
   void _startAnimatedRoute() {
     if (_fullRoutePoints.isEmpty) return;
     print(
@@ -1160,6 +1217,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     });
     _createAnimatedMarkers();
   }
+
   void _updateRouteAnimation() {
     if (!_isAnimating || _fullRoutePoints.isEmpty) {
       _animationTimer?.cancel();
@@ -1214,6 +1272,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     });
     _createAnimatedMarkers();
   }
+
   Future<void> _createAnimatedMarkers() async {
     final Set<Marker> animatedMarkers = {};
     if (_currentPosition != null) {
@@ -1257,6 +1316,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       _markers = animatedMarkers;
     });
   }
+
   void _startLiveTracking() {
     print('🎯 Canlı takip sistemi başlatılıyor...');
     _isLiveTracking = true;
@@ -1264,6 +1324,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       _updateLiveLocation();
     });
   }
+
   void _updateLiveLocation() async {
     try {
       if (_isSimulationMode) return;
@@ -1296,12 +1357,12 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
           driverLat: newPosition.latitude,
           driverLng: newPosition.longitude,
         );
-      } catch (e) {
-      }
+      } catch (e) {}
     } catch (e) {
       print('❌ Canlı konum güncelleme hatası: $e');
     }
   }
+
   void _toggleTestSimulation() async {
     if (_isSimulationMode) {
       SimulationService.stopSimulation();
@@ -1429,6 +1490,10 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     SimulationService.getSimulationStream()?.listen((simulationData) async {
       if (simulationData != null && mounted) {
         final newPosition = simulationData.location;
+        if (kDebugMode) {
+          print(
+              '🎮 Simülasyon pozisyon güncellendi: ${newPosition.latitude}, ${newPosition.longitude}');
+        }
         _lastKnownPosition = newPosition;
         _currentPosition = Position(
           latitude: newPosition.latitude,
@@ -1443,6 +1508,10 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
           speedAccuracy: 1,
         );
         _animateToNewPosition(newPosition);
+
+        // Simülasyon modunda durak tamamlama kontrolü
+        _checkSimulationStopCompletion(newPosition);
+
         await _updateMarkers();
         _updateDriverPosition(newPosition);
         if (_isVoiceNavigationActive) {
@@ -1462,6 +1531,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       backgroundColor: Colors.green,
     ));
   }
+
   void _animateToNewPosition(LatLng newPosition) {
     if (_mapController != null) {
       bool shouldAnimate = _shouldFollowUser;
@@ -1494,6 +1564,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     _lastKnownPosition = newPosition;
     _updateDriverPosition(newPosition);
   }
+
   List<LatLng> _densifyRoute(List<LatLng> points, double targetSpacingMeters) {
     if (points.length < 2) return points;
     final result = <LatLng>[]..add(points.first);
@@ -1523,11 +1594,13 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     }
     return result;
   }
+
   LatLng _lerpLatLng(LatLng a, LatLng b, double t) {
     final lat = a.latitude + (b.latitude - a.latitude) * t;
     final lng = a.longitude + (b.longitude - a.longitude) * t;
     return LatLng(lat, lng);
   }
+
   double _calculateBearing() {
     if (_trackingHistory.length < 2) return 0.0;
     final last = _trackingHistory.last;
@@ -1537,6 +1610,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     final bearing = math.atan2(dLng, dLat) * (180 / math.pi);
     return bearing < 0 ? bearing + 360 : bearing;
   }
+
   void _updateDriverPosition(LatLng position) async {
     try {
       await FirebaseFirestore.instance
@@ -1566,12 +1640,14 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Şoför konumu kaydetme hatası: $e');
     }
   }
+
   void _startDriversTracking() {
     print('👥 Diğer şoförler takibi başlatılıyor...');
     _driversUpdateTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
       _updateOtherDrivers();
     });
   }
+
   void _updateOtherDrivers() {
     final currentRegionId = _effectiveRegionId ?? widget.regionId;
     FirebaseFirestore.instance
@@ -1596,6 +1672,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       await _updateOtherDriverMarkers();
     });
   }
+
   Future<void> _updateOtherDriverMarkers() async {
     if (!mounted) return;
     await _createAllMarkers();
@@ -1603,6 +1680,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       setState(() {});
     }
   }
+
   Future<void> _createAllMarkers() async {
     final Set<Marker> allMarkers = {};
     if (_currentPosition != null) {
@@ -1681,6 +1759,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     }
     _markers = allMarkers;
   }
+
   Future<void> _drawSingleStopRoute(StopModel stop) async {
     try {
       if (_currentPosition == null || _directionsService == null) return;
@@ -1739,6 +1818,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Tek durak rota çizme hatası: $e');
     }
   }
+
   Future<String> _getPassengerNamesForStop(StopModel stop) async {
     try {
       final passengerNames = stop.metadata?['passengerNames'] as List<dynamic>?;
@@ -1770,6 +1850,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       return 'Hata';
     }
   }
+
   void _checkStopProximity() async {
     if (_isSimulationMode) {
       print('⏸️ Durak yakınlık kontrolü atlandı - simülasyon modunda');
@@ -1794,10 +1875,15 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       if (distance <= 50) {
         print('🎯 Durağa yaklaşıldı: ${stop.address}');
         _recordStopArrivalAuto(stop);
+
+        // Durak tamamlama takibinde de işaretle
+        StopCompletionTracker().markStopAsCompleted(stop.id);
+
         break;
       }
     }
   }
+
   Set<String> _recordedStops = {};
   Future<void> _recordStopArrivalAuto(StopModel stop) async {
     if (_recordedStops.contains(stop.id)) {
@@ -1816,8 +1902,12 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         latitude: stop.lat,
         longitude: stop.lng,
         passengerIds: stop.metadata?['passengerIds']?.cast<String>() ?? [],
-        passengerNames: stop.metadata?['passengerNames']?.cast<String>() ?? [],
+        passengerNames: stop.metadata?['passengerIds']?.cast<String>() ?? [],
       );
+
+      // Durak tamamlama takibinde de işaretle
+      StopCompletionTracker().markStopAsCompleted(stop.id);
+
       _recordedStops.add(stop.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1856,8 +1946,70 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       }
     }
   }
+
+  /// Simülasyon modunda durak tamamlama kontrolü
+  void _checkSimulationStopCompletion(LatLng currentPosition) {
+    if (!_isSimulationMode || _optimizedRoute.isEmpty) {
+      if (kDebugMode) {
+        print(
+            '🔍 Simülasyon durak kontrolü: isSimulationMode=$_isSimulationMode, routeLength=${_optimizedRoute.length}');
+        if (_optimizedRoute.isEmpty) {
+          print('⚠️ _optimizedRoute boş! _stops uzunluğu: ${_stops.length}');
+        }
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      print(
+          '🔍 Simülasyon durak kontrolü başladı - ${_optimizedRoute.length} durak, konum: ${currentPosition.latitude}, ${currentPosition.longitude}');
+      print('🔍 Durak detayları:');
+      for (int i = 0; i < _optimizedRoute.length; i++) {
+        final stop = _optimizedRoute[i];
+        print(
+            '   🎯 Durak ${i + 1}: ${stop.address} (${stop.lat}, ${stop.lng}) - ID: ${stop.id}');
+      }
+    }
+
+    for (var stop in _optimizedRoute) {
+      final distance = Geolocator.distanceBetween(
+        currentPosition.latitude,
+        currentPosition.longitude,
+        stop.lat,
+        stop.lng,
+      );
+
+      if (kDebugMode) {
+        print(
+            '📍 Simülasyon durak mesafesi: ${stop.address} - ${distance.toStringAsFixed(0)}m');
+      }
+
+      if (distance <= 50) {
+        print(
+            '🎯 Simülasyon: Durağa yaklaşıldı: ${stop.address} (${distance.toStringAsFixed(0)}m)');
+
+        // Durak tamamlama takibinde işaretle
+        StopCompletionTracker().markStopAsCompleted(stop.id);
+
+        if (kDebugMode) {
+          print('✅ Durak tamamlandı olarak işaretlendi: ${stop.id}');
+          print(
+              '🔍 StopCompletionTracker durumu: ${StopCompletionTracker().completedStops}');
+        }
+
+        // Otomatik durak kaydı yap
+        _recordStopArrivalAuto(stop);
+
+        break; // Sadece bir durak işaretle
+      }
+    }
+  }
+
   Future<void> _recordStopArrival(StopModel stop) async {
     try {
+      // Durak tamamlama takibinde de işaretle
+      StopCompletionTracker().markStopAsCompleted(stop.id);
+
       await EnhancedRouteService.logStopArrival(
         stopId: stop.id,
         driverId: widget.driverId,
@@ -1894,6 +2046,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       );
     }
   }
+
   void _showDepartureDialog(StopModel stop) {
     showDialog(
       context: context,
@@ -1916,6 +2069,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Future<void> _recordStopDeparture(StopModel stop) async {
     try {
       await EnhancedRouteService.logStopDeparture(
@@ -1944,6 +2098,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       );
     }
   }
+
   void _showStopDetails(StopModel stop) {
     showModalBottomSheet(
       context: context,
@@ -2030,6 +2185,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -2058,6 +2214,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -2106,8 +2263,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
               _shouldFollowUser = true;
               _isAnimating = false;
             },
-            onCameraIdle: () {
-            },
+            onCameraIdle: () {},
             onMapCreated: (controller) {
               _mapController = controller;
               print('🗺️ GoogleMap oluşturuldu, controller hazır');
@@ -2145,6 +2301,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildCleanHeader() {
     return Positioned(
       top: 0,
@@ -2198,6 +2355,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildSideControls() {
     return Positioned(
       top: 140,
@@ -2228,6 +2386,38 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
                 print(
                     '🎮 Test modu: ${widget.driverId} için ${_isTestSimulating ? "durduruluyor" : "başlatılıyor"}');
                 _toggleTestSimulation();
+              },
+            ),
+          if (_optimizedRoute.isNotEmpty) const SizedBox(height: 12),
+          // Test için durak tamamlama butonu
+          if (_optimizedRoute.isNotEmpty)
+            _buildControlButton(
+              Icons.check_circle,
+              'Test: Durak Tamamla',
+              () {
+                if (_optimizedRoute.isNotEmpty) {
+                  final firstStop = _optimizedRoute.first;
+                  StopCompletionTracker().markStopAsCompleted(firstStop.id);
+                  if (kDebugMode) {
+                    print(
+                        '🧪 Test: İlk durak manuel olarak tamamlandı: ${firstStop.address}');
+                  }
+                  _updateMarkers();
+                }
+              },
+            ),
+          if (_optimizedRoute.isNotEmpty) const SizedBox(height: 12),
+          // Test için durak sıfırlama butonu
+          if (_optimizedRoute.isNotEmpty)
+            _buildControlButton(
+              Icons.refresh,
+              'Test: Sıfırla',
+              () {
+                StopCompletionTracker().resetAllStops();
+                if (kDebugMode) {
+                  print('🧪 Test: Tüm duraklar sıfırlandı');
+                }
+                _updateMarkers();
               },
             ),
           if (_optimizedRoute.isNotEmpty) const SizedBox(height: 12),
@@ -2269,6 +2459,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildControlButton(
       IconData icon, String tooltip, VoidCallback onTap) {
     return GestureDetector(
@@ -2296,6 +2487,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildBottomInfoPanel() {
     if (_optimizedRoute.isEmpty) return const SizedBox.shrink();
     return Positioned(
@@ -2372,6 +2564,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildActionButton(
       IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
@@ -2416,6 +2609,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildModernControlPanel() {
     return Positioned(
       bottom: 20,
@@ -2550,6 +2744,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Future<void> _launchGoogleMapsNavigation() async {
     if (_optimizedRoute.isEmpty) return;
     try {
@@ -2578,11 +2773,13 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       }
     }
   }
+
   void _stopLiveTracking() {
     _liveTrackingTimer?.cancel();
     _liveTrackingTimer = null;
     print('Live tracking stopped');
   }
+
   Future<void> _startLiveSharing() async {
     try {
       final hasPerm =
@@ -2615,6 +2812,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('Konum paylaşımı başlatılamadı: $e');
     }
   }
+
   Future<void> _stopLiveSharing() async {
     try {
       print(
@@ -2633,6 +2831,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('❌ Konum paylaşımı durdurulamadı: $e');
     }
   }
+
   Widget _buildModernControlButton(
       IconData icon, String label, VoidCallback onTap) {
     return GestureDetector(
@@ -2665,6 +2864,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildModernRouteInfo() {
     return Positioned(
       top: 120,
@@ -2731,6 +2931,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildSimpleControls() {
     return Positioned(
       right: 16,
@@ -2775,6 +2976,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildCleanButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -2803,6 +3005,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildFloatingButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -2837,6 +3040,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildCleanStatusInfo() {
     if (_optimizedRoute.isEmpty) return const SizedBox.shrink();
     return Positioned(
@@ -2905,6 +3109,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildPrimaryActionButton({
     required IconData icon,
     required String label,
@@ -2941,6 +3146,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   void _showMapControls() {
     showModalBottomSheet(
       context: context,
@@ -3023,6 +3229,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildQuickStat({
     required IconData icon,
     required String label,
@@ -3059,6 +3266,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ],
     );
   }
+
   Widget _buildBottomActionButton({
     required IconData icon,
     required String label,
@@ -3096,6 +3304,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   void _showMapTypeSelector() {
     showModalBottomSheet(
       context: context,
@@ -3170,6 +3379,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildMapTypeOption({
     required String title,
     required String subtitle,
@@ -3249,6 +3459,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Future<BitmapDescriptor> _createCarIcon() async {
     const int size = 80;
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
@@ -3283,6 +3494,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         await image.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
+
   Future<BitmapDescriptor> _getCarIcon() async {
     const cacheKey = 'car_icon_v1';
     final cached = _bitmapCache[cacheKey];
@@ -3291,6 +3503,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     _bitmapCache[cacheKey] = icon;
     return icon;
   }
+
   Future<BitmapDescriptor> _getStopMarkerIcon({
     required String? passengerId,
     required int stopNumber,
@@ -3307,6 +3520,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     _bitmapCache[cacheKey] = icon;
     return icon;
   }
+
   Future<BitmapDescriptor> _createPassengerMarker(
       String passengerId, int stopNumber) async {
     const int size = 110;
@@ -3383,6 +3597,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         await image.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
+
   Future<BitmapDescriptor> _createDefaultStopMarker(int stopNumber) async {
     const int size = 80;
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
@@ -3417,6 +3632,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         await image.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
+
   void _goToCurrentLocation() async {
     if (_mapController != null && _currentPosition != null) {
       await _mapController!.animateCamera(
@@ -3427,6 +3643,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       );
     }
   }
+
   void _toggleVoiceNavigation() async {
     try {
       if (_isVoiceNavigationActive) {
@@ -3492,6 +3709,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       }
     }
   }
+
   void _showETAInfo() {
     showModalBottomSheet(
       context: context,
@@ -3558,6 +3776,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   Widget _buildETARow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -3583,6 +3802,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       ),
     );
   }
+
   LatLngBounds _calculateBounds(List<LatLng> points) {
     if (points.isEmpty) {
       return LatLngBounds(

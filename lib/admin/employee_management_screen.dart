@@ -75,11 +75,35 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
                     if (!snapshot.hasData) {
                       return const CircularProgressIndicator();
                     }
-                    final drivers = snapshot.data!.docs;
-                    if (drivers.isEmpty) {
-                      return Text('Bu bölgede aktif şoför bulunamadı.',
-                          style: TextStyle(color: AppColors.textDark));
+                    
+                    // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
+                    final activeDrivers = snapshot.data!.docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final isActive = data['isActive'] == true;
+                      final isNotDeleted = data['isDeleted'] != true;
+                      final hasValidStatus = data['status'] == 'active';
+                      
+                      // Eğer alanlar null ise varsayılan olarak aktif kabul et
+                      final finalIsActive = data['isActive'] == null ? true : isActive;
+                      final finalIsNotDeleted = data['isDeleted'] == null ? true : isNotDeleted;
+                      
+                      return finalIsActive && finalIsNotDeleted && hasValidStatus;
+                    }).toList();
+                    
+                    if (activeDrivers.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Bu bölgede aktif sürücü bulunamadı',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      );
                     }
+                    
                     return DropdownButtonFormField<String>(
                       decoration: const InputDecoration(
                         labelText: 'Şoför Seçin',
@@ -91,7 +115,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
                           value: null,
                           child: Text('Şoför Atanmamış'),
                         ),
-                        ...drivers.map((doc) {
+                        ...activeDrivers.map((doc) {
                           final data = doc.data() as Map<String, dynamic>;
                           return DropdownMenuItem<String>(
                             value: doc.id,
