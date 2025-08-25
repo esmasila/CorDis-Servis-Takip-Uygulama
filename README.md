@@ -66,8 +66,6 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 
 ## 📱 Ekran Görüntüleri
 
-> 📸 **Not**: Aşağıdaki ekran görüntüleri proje içindeki `docs/admin-screenshots/` klasöründen alınmıştır. Bu görseller admin panelinin farklı özelliklerini ve ekranlarını göstermektedir.
-
 ### 🎛️ **Admin Paneli Ekranları**
 
 #### **Ana Dashboard & Genel Görünüm**
