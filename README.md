@@ -68,52 +68,6 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 
 > 📸 Ekran görüntüleri buraya eklenecek
 
-## 🚀 Kurulum
-
-### **Gereksinimler**
-- Flutter SDK 3.1.0 veya üzeri
-- Dart SDK 3.0.0 veya üzeri
-- Android Studio / VS Code
-- Firebase hesabı
-
-### **1. Repository'yi Klonlayın**
-```bash
-git clone https://github.com/kullaniciadi/servistakipapp.git
-cd servistakipapp
-```
-
-### **2. Bağımlılıkları Yükleyin**
-```bash
-flutter pub get
-```
-
-### **3. Firebase Yapılandırması**
-```bash
-# Firebase CLI kurulumu
-npm install -g firebase-tools
-
-# Firebase'e giriş yapın
-firebase login
-
-# Proje yapılandırması
-firebase init
-```
-
-### **4. API Anahtarlarını Ayarlayın**
-`lib/firebase_options.dart` dosyasında Firebase yapılandırmasını güncelleyin.
-
-### **5. Uygulamayı Çalıştırın**
-```bash
-# Android
-flutter run
-
-# iOS
-flutter run -d ios
-
-# Web
-flutter run -d chrome
-```
-
 ## 📁 Proje Yapısı
 
 ```
@@ -127,26 +81,6 @@ lib/
 ├── utils/                # Yardımcı fonksiyonlar
 ├── view/                 # Ana ekranlar
 └── widget/               # Yeniden kullanılabilir widget'lar
-```
-
-## 🔧 Konfigürasyon
-
-### **Environment Variables**
-```dart
-// lib/service/route_optimization_service.dart
-static const String _googleMapsApiKey = 'YOUR_API_KEY';
-static const String _firebaseFunctionsUrl = 'YOUR_FUNCTIONS_URL';
-```
-
-### **Firebase Rules**
-```javascript
-// firestore.rules
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Güvenlik kuralları burada
-  }
-}
 ```
 
 ## 🎮 Simülasyon Modu Kullanımı
@@ -202,40 +136,6 @@ if (SimulationService.isSimulationActive) {
 | Method | Açıklama | Parametreler |
 |--------|----------|--------------|
 | `calculateETA` | Varış süresi hesaplar | `driverLocation`, `passengerStop`, `remainingStops` |
-
-## 🧪 Test
-
-### **Unit Tests**
-```bash
-flutter test
-```
-
-### **Integration Tests**
-```bash
-flutter test integration_test/
-```
-
-### **Widget Tests**
-```bash
-flutter test test/widget_test.dart
-```
-
-## 📦 Build & Deploy
-
-### **Android APK**
-```bash
-flutter build apk --release
-```
-
-### **iOS IPA**
-```bash
-flutter build ios --release
-```
-
-### **Web Build**
-```bash
-flutter build web --release
-```
 
 ## 📈 Roadmap
 
