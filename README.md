@@ -71,14 +71,14 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 #### **1️⃣ Ana Dashboard & Giriş Ekranı**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0026.jpg" width="140" alt="Admin Ana Dashboard" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0025.jpg" width="140" alt="Admin Panel Genel Görünüm" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0025.jpg" width="140" alt="Admin Panel Drawer Menü" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0024.jpg" width="140" alt="Şoför Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0023.jpg" width="140" alt="Kullanıcı Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0022.jpg" width="140" alt="Durak Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
-*Ana admin paneli - Dashboard, genel görünüm, şoför yönetimi, kullanıcı yönetimi ve durak yönetimi ekranları*
+*Ana admin paneli - Ana dashboard, drawer menü, şoför yönetimi, kullanıcı yönetimi ve durak yönetimi ekranları*
 
-**Detaylı Açıklama:** Bu bölümde admin panelinin temel ekranları bulunur. Ana dashboard'da sistem durumu, şoför yönetiminde sürücü bilgileri, kullanıcı yönetiminde çalışan kayıtları ve durak yönetiminde servis noktaları görüntülenir.
+**Detaylı Açıklama:** Bu bölümde admin panelinin temel ekranları bulunur. Ana dashboard'da sistem durumu, drawer menüde navigasyon seçenekleri, şoför yönetiminde sürücü bilgileri, kullanıcı yönetiminde çalışan kayıtları ve durak yönetiminde servis noktaları görüntülenir.
 
 #### **2️⃣ Sistem Yönetimi & Durak İşlemleri**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
