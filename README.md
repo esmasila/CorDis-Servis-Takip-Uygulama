@@ -71,57 +71,57 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 ### 🎛️ **Admin Paneli Ekranları**
 
 #### **Ana Dashboard & Genel Görünüm**
-![Admin Ana Dashboard](docs/admin-screenshots/IMG-20250825-WA0026.jpg)
+![Admin Ana Dashboard](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0026.jpg)
 *Ana admin paneli dashboard - Genel sistem durumu ve hızlı işlemler*
 
-![Admin Panel Genel Görünüm](docs/admin-screenshots/IMG-20250825-WA0025.jpg)
+![Admin Panel Genel Görünüm](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0025.jpg)
 *Admin paneli genel görünümü - Sol menü ve ana içerik alanı*
 
 #### **Kullanıcı Yönetimi**
-![Şoför Yönetimi](docs/admin-screenshots/IMG-20250825-WA0024.jpg)
+![Şoför Yönetimi](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0024.jpg)
 *Şoför ekleme, düzenleme ve yönetim ekranı*
 
-![Kullanıcı Yönetimi](docs/admin-screenshots/IMG-20250825-WA0023.jpg)
+![Kullanıcı Yönetimi](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0023.jpg)
 *Çalışan ve kullanıcı yönetim ekranı*
 
 #### **Sistem Yönetimi**
-![Durak Yönetimi](docs/admin-screenshots/IMG-20250825-WA0022.jpg)
+![Durak Yönetimi](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0022.jpg)
 *Durak ekleme, düzenleme ve koordinat yönetimi*
 
-![Bölge Yönetimi](docs/admin-screenshots/IMG-20250825-WA0021.jpg)
+![Bölge Yönetimi](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0021.jpg)
 *Servis bölgeleri ve rota planlama yönetimi*
 
-![Servis Takip](docs/admin-screenshots/IMG-20250825-WA0020.jpg)
+![Servis Takip](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0020.jpg)
 *Servis atama ve durak sırası yönetimi*
 
 #### **İletişim & İzinler**
-![Mesaj Yönetimi](docs/admin-screenshots/IMG-20250825-WA0019.jpg)
+![Mesaj Yönetimi](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0019.jpg)
 *Sistem içi mesajlaşma ve bildirim yönetimi*
 
-![Bildirim Yönetimi](docs/admin-screenshots/IMG-20250825-WA0018.jpg)
+![Bildirim Yönetimi](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0018.jpg)
 *Push bildirim ve sistem uyarıları yönetimi*
 
-![İzin Yönetimi](docs/admin-screenshots/IMG-20250825-WA0017.jpg)
+![İzin Yönetimi](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0017.jpg)
 *Çalışan izin takibi ve onay sistemi*
 
 #### **Takip & Monitoring**
-![Canlı Harita](docs/admin-screenshots/IMG-20250825-WA0016.jpg)
+![Canlı Harita](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0016.jpg)
 *Gerçek zamanlı şoför takibi ve harita görünümü*
 
-![Şoför Takibi](docs/admin-screenshots/IMG-20250825-WA0015.jpg)
+![Şoför Takibi](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0015.jpg)
 *Detaylı şoför performans ve rota takibi*
 
-![Bölge Canlı Takip](docs/admin-screenshots/IMG-20250825-WA0014.jpg)
+![Bölge Canlı Takip](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0014.jpg)
 *Bölge bazlı canlı servis takibi*
 
 #### **Mobil Uygulama Ekranları**
-![Mobil Admin Panel](docs/admin-screenshots/IMG-20250825-WA0013.jpg)
+![Mobil Admin Panel](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0013.jpg)
 *Mobil cihazlarda admin paneli görünümü*
 
-![WhatsApp Görsel 1](docs/admin-screenshots/WhatsApp%20Görsel%202025-08-25%20saat%2019.13.51_9981926a.jpg)
+![WhatsApp Görsel 1](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/WhatsApp%20Görsel%202025-08-25%20saat%2019.13.51_9981926a.jpg)
 *Admin paneli ek özellikler ve ayarlar*
 
-![WhatsApp Görsel 2](docs/admin-screenshots/WhatsApp%20Görsel%202025-08-25%20saat%2019.13.51_24674f5e.jpg)
+![WhatsApp Görsel 2](https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/WhatsApp%20Görsel%202025-08-25%20saat%2019.13.51_24674f5e.jpg)
 *Admin paneli gelişmiş yönetim seçenekleri*
 
 ---
@@ -211,6 +211,3 @@ if (SimulationService.isSimulationActive) {
 
 ---
 
-## 📞 İletişim
-
-Proje hakkında sorularınız için lütfen iletişime geçin.
