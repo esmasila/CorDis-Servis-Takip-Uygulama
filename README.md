@@ -76,7 +76,9 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0023.jpg" width="140" alt="Kullanıcı Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0022.jpg" width="140" alt="Durak Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
-*Ana admin paneli - Dashboard, genel görünüm ve kullanıcı yönetimi ekranları*
+*Ana admin paneli - Dashboard, genel görünüm, şoför yönetimi, kullanıcı yönetimi ve durak yönetimi ekranları*
+
+**Detaylı Açıklama:** Bu bölümde admin panelinin temel ekranları bulunur. Ana dashboard'da sistem durumu, şoför yönetiminde sürücü bilgileri, kullanıcı yönetiminde çalışan kayıtları ve durak yönetiminde servis noktaları görüntülenir.
 
 #### **2️⃣ Sistem Yönetimi & Durak İşlemleri**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
@@ -86,7 +88,9 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0018.jpg" width="140" alt="Bildirim Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0017.jpg" width="140" alt="İzin Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
-*Sistem yönetimi - Bölge, servis, mesaj, bildirim ve izin yönetimi ekranları*
+*Sistem yönetimi - Bölge yönetimi, servis takip, mesaj yönetimi, bildirim yönetimi ve izin yönetimi ekranları*
+
+**Detaylı Açıklama:** Sistem yönetimi bölümünde bölge tanımları, servis atama işlemleri, şoför-yolcu mesajlaşması, push bildirim ayarları ve çalışan izin takibi yapılır.
 
 #### **3️⃣ Canlı Takip & Monitoring**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
@@ -96,13 +100,17 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0013.jpg" width="140" alt="Mobil Admin Panel" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/WhatsApp%20Görsel%202025-08-25%20saat%2019.13.51_9981926a.jpg" width="140" alt="WhatsApp Görsel 1" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
-*Canlı takip ve monitoring - Harita, şoför takibi, bölge takibi ve mobil görünümler*
+*Canlı takip ve monitoring - Canlı harita, şoför takibi, bölge canlı takip, mobil admin panel ve ek özellikler*
+
+**Detaylı Açıklama:** Canlı takip bölümünde gerçek zamanlı harita görünümü, aktif şoförlerin konum takibi, bölge bazlı servis izleme ve mobil cihazlarda admin panel kullanımı sağlanır.
 
 #### **4️⃣ Ek Özellikler & Gelişmiş Yönetim**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/WhatsApp%20Görsel%202025-08-25%20saat%2019.13.51_24674f5e.jpg" width="140" alt="WhatsApp Görsel 2" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
 *Ek özellikler ve gelişmiş yönetim seçenekleri*
+
+**Detaylı Açıklama:** Gelişmiş yönetim seçenekleri ve ek özellikler bu bölümde yer alır. Sistem konfigürasyonu, gelişmiş ayarlar ve ek yönetim araçları bulunur.
 
 ---
 
