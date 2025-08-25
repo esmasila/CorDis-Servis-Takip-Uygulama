@@ -66,11 +66,9 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 
 ## 📱 Ekran Görüntüleri
 
-> 📸 **Not**: Aşağıdaki ekran görüntüleri proje içindeki `docs/admin-screenshots/` klasöründen alınmıştır. Bu görseller admin panelinin farklı özelliklerini ve ekranlarını göstermektedir.
-
 ### 🎛️ **Admin Paneli Ekranları**
 
-#### **Ana Dashboard & Genel Görünüm**
+#### **1️⃣ Ana Dashboard & Giriş Ekranı**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0026.jpg" width="140" alt="Admin Ana Dashboard" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0025.jpg" width="140" alt="Admin Panel Genel Görünüm" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
@@ -78,9 +76,9 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0023.jpg" width="140" alt="Kullanıcı Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0022.jpg" width="140" alt="Durak Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
-*Ana admin paneli ekranları - Dashboard, genel görünüm, kullanıcı yönetimi ve sistem yönetimi*
+*Ana admin paneli - Dashboard, genel görünüm ve kullanıcı yönetimi ekranları*
 
-#### **Sistem Yönetimi & İletişim**
+#### **2️⃣ Sistem Yönetimi & Durak İşlemleri**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0021.jpg" width="140" alt="Bölge Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0020.jpg" width="140" alt="Servis Takip" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
@@ -88,9 +86,9 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0018.jpg" width="140" alt="Bildirim Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0017.jpg" width="140" alt="İzin Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
-*Sistem yönetimi ve iletişim ekranları - Bölge, servis, mesaj, bildirim ve izin yönetimi*
+*Sistem yönetimi - Bölge, servis, mesaj, bildirim ve izin yönetimi ekranları*
 
-#### **Takip & Monitoring Ekranları**
+#### **3️⃣ Canlı Takip & Monitoring**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0016.jpg" width="140" alt="Canlı Harita" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0015.jpg" width="140" alt="Şoför Takibi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
@@ -98,9 +96,9 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0013.jpg" width="140" alt="Mobil Admin Panel" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/WhatsApp%20Görsel%202025-08-25%20saat%2019.13.51_9981926a.jpg" width="140" alt="WhatsApp Görsel 1" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
-*Takip ve monitoring ekranları - Canlı harita, şoför takibi, bölge takibi ve mobil görünümler*
+*Canlı takip ve monitoring - Harita, şoför takibi, bölge takibi ve mobil görünümler*
 
-#### **Ek Özellikler & Gelişmiş Yönetim**
+#### **4️⃣ Ek Özellikler & Gelişmiş Yönetim**
 <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/WhatsApp%20Görsel%202025-08-25%20saat%2019.13.51_24674f5e.jpg" width="140" alt="WhatsApp Görsel 2" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
