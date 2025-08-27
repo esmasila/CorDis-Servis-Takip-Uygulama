@@ -98,6 +98,26 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 
 **Detaylı Açıklama:** Canlı takip ve monitoring ekranları. Bildirim yönetiminde push bildirim ayarları, izin yönetiminde çalışan izin takibi, canlı haritada gerçek zamanlı servis konumları, şoför takibinde aktif sürücü izleme, bölge canlı takipte servis alanı izleme, mobil admin panelde cep telefonundan yönetim ve ek WhatsApp görsellerinde gelişmiş özellikler bulunur.
 
+#### **3️⃣ Sistem Yönetimi & Durak İşlemleri**
+<div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
+
+
+ 
+
+
+</div>
+*Sistem yönetimi - Bölge yönetimi, servis takip, mesaj yönetimi, bildirim yönetimi ve izin yönetimi ekranları*
+
+**Detaylı Açıklama:** Sistem yönetimi bölümünde bölge tanımları, servis atama işlemleri, şoför-yolcu mesajlaşması, push bildirim ayarları ve çalışan izin takibi yapılır.
+
+#### **4️⃣ Ek Özellikler & Gelişmiş Yönetim**
+<div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
+ 
+</div>
+*Ek özellikler ve gelişmiş yönetim seçenekleri*
+
+**Detaylı Açıklama:** Gelişmiş yönetim seçenekleri ve ek özellikler bu bölümde yer alır. Sistem konfigürasyonu, gelişmiş ayarlar ve ek yönetim araçları bulunur.
+
 ---
 
 ### 📱 **Şoför & Yolcu Ekranları**
