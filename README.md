@@ -107,15 +107,13 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/IMG-20250825-WA0029.jpg" width="90" alt="Şoför Ana Ekran" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/IMG-20250825-WA0030.jpg" width="90" alt="Şoför Harita Görünümü" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/IMG-20250825-WA0032.jpg" width="90" alt="Şoför Durak Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/WhatsApp%20Görsel%202025-08-27%20saat%2014.17.31_d37274db.jpg" width="90" alt="Şoför Rota Takibi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/WhatsApp%20Görsel%202025-08-27%20saat%2014.18.17_3a4786dc.jpg" width="90" alt="Şoför Bildirim Sistemi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/WhatsApp%20G%C3%B6rsel%202025-08-27%20saat%2014.17.31_d37274db.jpg" width="90" alt="Şoför Rota Takibi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/WhatsApp%20G%C3%B6rsel%202025-08-27%20saat%2014.18.17_3a4786dc.jpg" width="90" alt="Şoför Bildirim Sistemi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
 
 **Şoför Panel Özellikleri:**
 - **Ana Ekran**: Hızlı erişim menüsü ve durum bilgileri
 - **Harita Görünümü**: Canlı rota takibi ve durak konumları
-- **Durak Yönetimi**: Durak ziyaretleri ve bekleme süreleri
-- **Rota Takibi**: Gerçek zamanlı rota optimizasyonu
 - **Bildirim Sistemi**: Yolcu mesajları ve sistem uyarıları
 
 #### **👥 Yolcu Ekranları**
