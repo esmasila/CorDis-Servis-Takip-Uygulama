@@ -96,15 +96,9 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 </div>
 *Sistem yönetimi ve durak işlemleri - Mesaj yönetimi, servis takip, bölge yönetimi, durak yönetimi, kullanıcı yönetimi, şoför yönetimi, drawer menü ve ana dashboard*
 
-**Detaylı Açıklama:** Sistem yönetimi ve durak işlemleri ekranları. Mesaj yönetiminde iletişim kanalları, servis takip ekranında aktif servisler, bölge yönetiminde servis alanları, durak yönetiminde servis noktaları, kullanıcı yönetiminde çalışan kayıtları, şoför yönetiminde sürücü bilgileri, drawer menüde navigasyon seçenekleri ve ana dashboard'da sistem durumu bulunur.
+**Detaylı Açıklama:** Sistem yönetimi ve durak işlemleri ekranları. Mesaj yönetiminde şoför-yolcu iletişimi, servis takip ekranında aktif servisler ve durak sıralaması, bölge yönetiminde servis alanları ve bölge tanımları, durak yönetiminde servis noktaları ve konum bilgileri, kullanıcı yönetiminde çalışan kayıtları ve yetkilendirme, şoför yönetiminde sürücü bilgileri ve araç atamaları, drawer menüde navigasyon seçenekleri ve ana dashboard'da sistem durumu ve istatistikler bulunur.
 
-#### **3️⃣ Ek Özellikler & Gelişmiş Yönetim**
-<div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;">
- 
-</div>
-*Ek özellikler ve gelişmiş yönetim seçenekleri*
 
-**Detaylı Açıklama:** Gelişmiş yönetim seçenekleri ve ek özellikler bu bölümde yer alır. Sistem konfigürasyonu, gelişmiş ayarlar ve ek yönetim araçları bulunur.
 
 ---
 
