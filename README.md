@@ -83,12 +83,11 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 **Admin Panel Özellikleri (1. Bölüm):**
 - **Mobil Admin Panel**: Hızlı erişim ve mobil uyumlu yönetim
 - **Dashboard Kontrolü**: Sistem durumu ve genel bakış
-- **Şoför Takibi**: Gerçek zamanlı şoför konum takibi
-- **Bölge Canlı Takip**: Bölge bazlı servis operasyonları
-- **İzin Yönetimi**: Şoför izinleri ve vardiya planlaması
-- **Canlı Harita**: Gerçek zamanlı harita üzerinde takip
-- **Bildirim Yönetimi**: Sistem uyarıları ve bildirimler
-
+- **Şoför Yönetimi**: Şoför hesap ve yetki yönetimi
+- **Kullanıcı Yönetimi**: Yolcu hesap yönetimi
+- **Durak Yönetimi**: Durak ekleme, düzenleme ve planlama
+- **Bölge Yönetimi**: Servis bölgeleri ve organizasyon
+ 
 
 #### **2️⃣ Yönetim Paneli & Canlı Takip**
 <div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin: 20px 0;">
@@ -103,18 +102,13 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 </div>
 
 **Admin Panel Özellikleri (2. Bölüm):**
-- **Mesaj Yönetimi**: Şoför ve yolcu mesajlaşma sistemi
 - **Servis Takip**: Canlı servis operasyon takibi
-- **Bölge Yönetimi**: Servis bölgeleri ve organizasyon
-- **Durak Yönetimi**: Durak ekleme, düzenleme ve planlama
-- **Kullanıcı Yönetimi**: Yolcu hesap yönetimi
-- **Şoför Yönetimi**: Şoför hesap ve yetki yönetimi
-- **Drawer Menü**: Hızlı erişim navigasyon menüsü
-- **Ana Dashboard**: Sistem genel durumu ve istatistikler
-
-
-
-
+- **Mesaj Yönetimi**: Şoför ve yolcu mesajlaşma sistemi
+- **Bildirim Yönetimi**: Sistem uyarıları ve bildirimler
+- **İzin Yönetimi**: Şoför izinleri ve vardiya planlaması
+- **Canlı Harita**: Gerçek zamanlı harita üzerinde takip
+- **Şoför Takibi**: Gerçek zamanlı şoför konum takibi
+- **Bölge Canlı Takip**: Bölge bazlı servis operasyonları
 ---
 
 #### **🚗 Şoför Paneli Ekranları**
@@ -177,59 +171,7 @@ lib/
 └── widget/               # Yeniden kullanılabilir widget'lar
 ```
 
-## 🎮 Simülasyon Modu Kullanımı
 
-### **Basit Simülasyon Başlatma**
-```dart
-import 'package:your_app/service/simulation_service.dart';
-
-// Rota noktaları tanımlayın
-List<LatLng> route = [
-  LatLng(38.7205, 35.4826), // Kayseri
-  LatLng(38.7205, 35.4826), // Hedef
-];
-
-// Simülasyonu başlatın
-await SimulationService.startDriverSimulation(
-  driverId: 'driver123',
-  route: route,
-  speed: 40.0, // km/h
-  interval: Duration(seconds: 1),
-);
-```
-
-### **Rastgele Rota Oluşturma**
-```dart
-// Merkez nokta etrafında rastgele rota
-List<LatLng> randomRoute = SimulationService.generateRandomRoute(
-  center: LatLng(41.0082, 28.9784),
-  pointCount: 10,
-  radiusKm: 5.0,
-);
-```
-
-### **Simülasyon Durumu Kontrolü**
-```dart
-if (SimulationService.isSimulationActive) {
-  print('Simülasyon aktif');
-  print('Mevcut konum: ${SimulationService.currentLocation}');
-  print('İlerleme: ${SimulationService.routeProgress * 100}%');
-}
-```
-
-## 📊 API Referansı
-
-### **SimulationService**
-| Method | Açıklama | Parametreler |
-|--------|----------|--------------|
-| `startDriverSimulation` | Simülasyon başlatır | `driverId`, `route`, `speed`, `interval` |
-| `stopSimulation` | Simülasyonu durdurur | - |
-| `generateRandomRoute` | Rastgele rota oluşturur | `center`, `pointCount`, `radiusKm` |
-
-### **ETACalculationService**
-| Method | Açıklama | Parametreler |
-|--------|----------|--------------|
-| `calculateETA` | Varış süresi hesaplar | `driverLocation`, `passengerStop`, `remainingStops` |
 
 ## 📈 Roadmap
 
