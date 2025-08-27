@@ -101,7 +101,24 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 
 ### 📱 **Şoför & Yolcu Ekranları**
 
-> 📸 Şoför ve yolcu ekran görüntüleri buraya eklenecek
+#### **🚗 Şoför Paneli Ekranları**
+<div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin: 20px 0;">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/WhatsApp%20Görsel%202025-08-27%20saat%2014.18.17_3a4786dc.jpg" width="90" alt="Şoför Panel 1" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/WhatsApp%20Görsel%202025-08-27%20saat%2014.17.31_d37274db.jpg" width="90" alt="Şoför Panel 2" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/IMG-20250825-WA0032.jpg" width="90" alt="Şoför Panel 3" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/IMG-20250825-WA0030.jpg" width="90" alt="Şoför Panel 4" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/driver-screenshots/IMG-20250825-WA0029.jpg" width="90" alt="Şoför Panel 5" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+</div>
+
+**Şoför Panel Özellikleri:**
+- **Ana Dashboard**: Günlük rota ve durak bilgileri
+- **Harita Görünümü**: Canlı konum ve rota takibi
+- **Durak Yönetimi**: Durak ziyaretleri ve bekleme süreleri
+- **Mesajlaşma**: Yolcular ve yöneticilerle iletişim
+- **Ayarlar**: Uygulama tercihleri ve profil yönetimi
+
+#### **👥 Yolcu Ekranları**
+> 📸 Yolcu ekran görüntüleri buraya eklenecek
 
 ---
 
