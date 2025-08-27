@@ -5,6 +5,7 @@ import '../models/stop_log_model.dart';
 import 'permission_service.dart';
 import '../models/permission_model.dart';
 import 'geocoding_service.dart';
+import 'unified_route_optimization_service.dart';
 
 class EnhancedRouteService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -93,10 +94,12 @@ class EnhancedRouteService {
         print('📍 Tek durak için rota oluşturuluyor');
         return [stops.first.copyWith(order: 1)];
       }
+      
       final driverLocation = {
         'latitude': currentPosition.latitude,
         'longitude': currentPosition.longitude,
       };
+      
       final stopsAsWaypoints = stops
           .map((stop) => {
                 'latitude': stop.lat,
@@ -106,18 +109,25 @@ class EnhancedRouteService {
                 'passengerIds': [],
               })
           .toList();
-      print(
-          '🗺️ Google Directions API ile ${stops.length} durak optimize ediliyor...');
-      final optimizedWaypoints =
-          await GeocodingService.optimizeStopsAsWaypoints(
+      
+      print('🚀 Unified Route Optimization Service ile ${stops.length} durak optimize ediliyor...');
+      
+      // Cache key oluştur (driver panel ile aynı format)
+      final cacheKey = 'driver_${stops.first.driverId}_${stops.length}_${currentPosition.latitude.toStringAsFixed(6)}_${currentPosition.longitude.toStringAsFixed(6)}';
+      print('🔑 Cache key: $cacheKey');
+      
+      final optimizedWaypoints = await UnifiedRouteOptimizationService.optimizeRoute(
         driverLocation: driverLocation,
         stops: stopsAsWaypoints,
+        useGoogleApi: true,
+        cacheKey: cacheKey,
       );
+      
       if (optimizedWaypoints.isEmpty) {
-        print(
-            '⚠️ Google API optimizasyonu başarısız, yerel algoritma kullanılıyor');
+        print('⚠️ Unified optimizasyon başarısız, fallback kullanılıyor');
         return _fallbackOptimizeRoute(stops, currentPosition);
       }
+      
       final optimizedRoute = <StopModel>[];
       for (int i = 0; i < optimizedWaypoints.length; i++) {
         final waypoint = optimizedWaypoints[i];
@@ -129,11 +139,16 @@ class EnhancedRouteService {
         );
         optimizedRoute.add(originalStop.copyWith(order: i + 1));
       }
-      print('✅ ${optimizedRoute.length} durak Google API ile optimize edildi');
+      
+      // Get optimization statistics
+      final stats = UnifiedRouteOptimizationService.getRouteStatistics(optimizedWaypoints);
+      print('✅ ${optimizedRoute.length} durak Unified Service ile optimize edildi');
+      print('📊 Optimizasyon istatistikleri: ${stats['optimizationMethod']} - ${stats['totalDistance']?.toStringAsFixed(2)} km');
+      
       return optimizedRoute;
     } catch (e) {
-      print('❌ Google API optimizasyon hatası: $e');
-      print('🔄 Yerel algoritma ile devam ediliyor...');
+      print('❌ Unified optimizasyon hatası: $e');
+      print('🔄 Fallback algoritma ile devam ediliyor...');
       return _fallbackOptimizeRoute(stops, currentPosition);
     }
   }

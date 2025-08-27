@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'unified_route_optimization_service.dart';
 
 class GeocodingService {
   static const String _apiKey = String.fromEnvironment(
@@ -139,6 +140,26 @@ class GeocodingService {
   }) async {
     try {
       if (stops.isEmpty) return stops;
+      
+      print('[GeocodingService] Unified Route Optimization Service ile ${stops.length} durak optimize ediliyor...');
+      
+      // Use unified optimization service for consistent results
+      final optimizedStops = await UnifiedRouteOptimizationService.optimizeRoute(
+        driverLocation: driverLocation,
+        stops: stops,
+        useGoogleApi: true,
+      );
+      
+      if (optimizedStops.isNotEmpty) {
+        // Get optimization statistics
+        final stats = UnifiedRouteOptimizationService.getRouteStatistics(optimizedStops);
+        print('[GeocodingService] ✅ ${optimizedStops.length} durak Unified Service ile optimize edildi');
+        print('[GeocodingService] 📊 Optimizasyon: ${stats['optimizationMethod']} - ${stats['totalDistance']?.toStringAsFixed(2)} km');
+        return optimizedStops;
+      }
+      
+      // Fallback to original method if unified service fails
+      print('[GeocodingService] ⚠️ Unified service başarısız, orijinal algoritma kullanılıyor');
       final sortedStops = List<Map<String, dynamic>>.from(stops);
       sortedStops.sort((a, b) {
         final da = _calculateDistance(

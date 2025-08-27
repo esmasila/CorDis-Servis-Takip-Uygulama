@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../models/stop_model.dart';
+import 'unified_route_optimization_service.dart';
 
 class RouteOptimizationService {
   static const String _firebaseFunctionsUrl =
@@ -57,6 +58,46 @@ class RouteOptimizationService {
   ) async {
     if (stops.isEmpty) return [];
     try {
+      // Use unified optimization service for consistent results
+      final driverLocation = {
+        'latitude': currentPosition.latitude,
+        'longitude': currentPosition.longitude,
+      };
+      
+      final stopsAsWaypoints = stops.map((stop) => {
+        'latitude': stop.lat,
+        'longitude': stop.lng,
+        'stopId': stop.id,
+        'address': stop.address,
+      }).toList();
+      
+      final optimizedWaypoints = await UnifiedRouteOptimizationService.optimizeRoute(
+        driverLocation: driverLocation,
+        stops: stopsAsWaypoints,
+        useGoogleApi: true,
+      );
+      
+      if (optimizedWaypoints.isNotEmpty) {
+        // Convert back to StopModel format
+        final optimizedStops = <StopModel>[];
+        for (final waypoint in optimizedWaypoints) {
+          final originalStop = stops.firstWhere(
+            (stop) => stop.lat == waypoint['latitude'] && stop.lng == waypoint['longitude'],
+            orElse: () => stops.first,
+          );
+          optimizedStops.add(originalStop);
+        }
+        
+        // Get optimization statistics
+        final stats = UnifiedRouteOptimizationService.getRouteStatistics(optimizedWaypoints);
+        print('✅ Route Optimization Service: ${optimizedStops.length} durak optimize edildi');
+        print('📊 Optimizasyon: ${stats['optimizationMethod']} - ${stats['totalDistance']?.toStringAsFixed(2)} km');
+        
+        return optimizedStops;
+      }
+      
+      // Fallback to original method if unified service fails
+      print('⚠️ Unified service başarısız, orijinal algoritma kullanılıyor');
       final routeData = await optimizeRouteWithFirebase(currentPosition, stops);
       if (routeData != null && routeData['waypoint_order'] != null) {
         final waypointOrder = List<int>.from(routeData['waypoint_order']);

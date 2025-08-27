@@ -4,6 +4,8 @@ import '../models/permission_model.dart';
 import 'permission_service.dart';
 import 'auto_stop_service.dart';
 import 'geocoding_service.dart';
+import 'unified_route_optimization_service.dart';
+
 class AutoRouteService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static Future<void> createAutoRouteForDriver({
@@ -22,7 +24,8 @@ class AutoRouteService {
       } else {
         routeType = 'morning';
       }
-      print('[AutoRouteService] Şoför $driverId için $routeType rotası oluşturuluyor...');
+      print(
+          '[AutoRouteService] Şoför $driverId için $routeType rotası oluşturuluyor...');
       await deleteExistingAutoRoutes(driverId, now, routeType);
       final result = await generateAutoRouteFromDriverLocation(
         driverId: driverId,
@@ -31,7 +34,8 @@ class AutoRouteService {
         routeType: routeType,
       );
       if (result == null) {
-        print('[AutoRouteService] Şoför için otomatik rota başarıyla oluşturuldu');
+        print(
+            '[AutoRouteService] Şoför için otomatik rota başarıyla oluşturuldu');
         _startListeningForPermissionChanges(driverId, region);
       } else {
         print('[AutoRouteService] Rota oluşturma hatası: $result');
@@ -41,6 +45,7 @@ class AutoRouteService {
       rethrow;
     }
   }
+
   static Future<String?> generateAutoRouteFromDriverLocation({
     required String driverId,
     required String regionId,
@@ -50,30 +55,33 @@ class AutoRouteService {
     try {
       final targetDate = routeDate ?? DateTime.now();
       final targetRouteType = routeType ?? 'morning';
-      print('[AutoRouteService] Şoför konumuna göre otomatik rota oluşturuluyor...');
-      print('[AutoRouteService] Şoför: $driverId, Bölge: $regionId, Tarih: $targetDate, Tip: $targetRouteType');
+      print(
+          '[AutoRouteService] Şoför konumuna göre otomatik rota oluşturuluyor...');
+      print(
+          '[AutoRouteService] Şoför: $driverId, Bölge: $regionId, Tarih: $targetDate, Tip: $targetRouteType');
       final passengers = await _getDriverPassengers(driverId, regionId);
       if (passengers.isEmpty) {
         return 'Bu şoföre atanmış yolcu bulunamadı.';
       }
       print('[AutoRouteService] Toplam yolcu sayısı: ${passengers.length}');
       final activePassengers = await _filterActivePassengers(
-        passengers, 
-        targetDate, 
-        targetRouteType
-      );
-      print('[AutoRouteService] Aktif yolcu sayısı: ${activePassengers.length}');
+          passengers, targetDate, targetRouteType);
+      print(
+          '[AutoRouteService] Aktif yolcu sayısı: ${activePassengers.length}');
       if (activePassengers.isEmpty) {
         return 'Bu tarih ve saat için aktif yolcu bulunamadı.';
       }
-      final allStops = await _getMainRoadStopsForPassengers(activePassengers, regionId);
+      final allStops =
+          await _getMainRoadStopsForPassengers(activePassengers, regionId);
       if (allStops.isEmpty) {
         return 'Aktif yolcular için ana yol durağı bulunamadı.';
       }
-      print('[AutoRouteService] Toplam ana yol durağı sayısı: ${allStops.length}');
+      print(
+          '[AutoRouteService] Toplam ana yol durağı sayısı: ${allStops.length}');
       final driverLocation = await _getDriverCurrentLocation(driverId);
       if (driverLocation == null) {
-        print('[AutoRouteService] Şoför konumu alınamadı, varsayılan sıralama kullanılıyor');
+        print(
+            '[AutoRouteService] Şoför konumu alınamadı, varsayılan sıralama kullanılıyor');
         return await _generateStandardAutoRoute(
           driverId: driverId,
           regionId: regionId,
@@ -83,24 +91,32 @@ class AutoRouteService {
           stops: allStops,
         );
       }
-      print('[AutoRouteService] Şoför konumu: ${driverLocation['latitude']}, ${driverLocation['longitude']}');
-      final optimizedStops = await _createMultiStopRoute(allStops, driverLocation, activePassengers);
-      print('[AutoRouteService] Ana yol durakları şoför konumuna göre optimize edildi');
+      print(
+          '[AutoRouteService] Şoför konumu: ${driverLocation['latitude']}, ${driverLocation['longitude']}');
+      final optimizedStops =
+          await UnifiedRouteOptimizationService.optimizeRoute(
+        driverLocation: driverLocation,
+        stops: allStops,
+        useGoogleApi: true,
+      );
+      print(
+          '[AutoRouteService] Ana yol durakları şoför konumuna göre optimize edildi');
       for (int i = 0; i < optimizedStops.length; i++) {
         final stop = optimizedStops[i];
         final distance = _calculateDistance(
-          driverLocation['latitude']!, 
-          driverLocation['longitude']!,
-          stop['latitude']?.toDouble() ?? 0.0, 
-          stop['longitude']?.toDouble() ?? 0.0
-        );
-        print('[AutoRouteService] ${i + 1}. ${stop['name']} - ${distance.toStringAsFixed(2)} km');
+            driverLocation['latitude']!,
+            driverLocation['longitude']!,
+            stop['latitude']?.toDouble() ?? 0.0,
+            stop['longitude']?.toDouble() ?? 0.0);
+        print(
+            '[AutoRouteService] ${i + 1}. ${stop['name']} - ${distance.toStringAsFixed(2)} km');
       }
       final navigationUrl = GeocodingService.generateNavigationUrl(
         origin: driverLocation,
         waypoints: optimizedStops,
       );
-      final routeName = _generateRouteName(targetRouteType, targetDate, activePassengers.length);
+      final routeName = _generateRouteName(
+          targetRouteType, targetDate, activePassengers.length);
       final routeId = await _createRoute(
         driverId: driverId,
         regionId: regionId,
@@ -110,13 +126,15 @@ class AutoRouteService {
         routeType: targetRouteType,
         navigationUrl: navigationUrl,
       );
-      print('[AutoRouteService] Şoför konumuna göre ana yol rotası oluşturuldu: $routeId, Durak sayısı: ${optimizedStops.length}');
+      print(
+          '[AutoRouteService] Şoför konumuna göre ana yol rotası oluşturuldu: $routeId, Durak sayısı: ${optimizedStops.length}');
       return null;
     } catch (e) {
       print('[AutoRouteService] Hata: $e');
       return 'Şoför konumuna göre rota oluşturulurken hata: $e';
     }
   }
+
   static Future<List<Map<String, dynamic>>> _getMainRoadStopsForPassengers(
     List<Map<String, dynamic>> passengers,
     String regionId,
@@ -125,56 +143,71 @@ class AutoRouteService {
     final Set<String> addedStops = {};
     for (final passenger in passengers) {
       try {
-        final mainRoadStop = await _findMainRoadStopForPassenger(passenger, regionId);
+        final mainRoadStop =
+            await _findMainRoadStopForPassenger(passenger, regionId);
         if (mainRoadStop != null) {
-          final stopKey = '${mainRoadStop['latitude']}_${mainRoadStop['longitude']}';
+          final stopKey =
+              '${mainRoadStop['latitude']}_${mainRoadStop['longitude']}';
           if (!addedStops.contains(stopKey)) {
             stops.add(mainRoadStop);
             addedStops.add(stopKey);
-            print('[AutoRouteService] Ana yol durağı eklendi: ${mainRoadStop['name']} (${passenger['name']} için)');
+            print(
+                '[AutoRouteService] Ana yol durağı eklendi: ${mainRoadStop['name']} (${passenger['name']} için)');
           }
         } else {
           await _createMainRoadStopForPassenger(passenger, regionId);
-          final newMainRoadStop = await _findMainRoadStopForPassenger(passenger, regionId);
+          final newMainRoadStop =
+              await _findMainRoadStopForPassenger(passenger, regionId);
           if (newMainRoadStop != null) {
-            final stopKey = '${newMainRoadStop['latitude']}_${newMainRoadStop['longitude']}';
+            final stopKey =
+                '${newMainRoadStop['latitude']}_${newMainRoadStop['longitude']}';
             if (!addedStops.contains(stopKey)) {
               stops.add(newMainRoadStop);
               addedStops.add(stopKey);
-              print('[AutoRouteService] Yeni ana yol durağı oluşturuldu ve eklendi: ${newMainRoadStop['name']} (${passenger['name']} için)');
+              print(
+                  '[AutoRouteService] Yeni ana yol durağı oluşturuldu ve eklendi: ${newMainRoadStop['name']} (${passenger['name']} için)');
             }
           } else {
-            final fallbackStop = await _createFallbackStopForPassenger(passenger, regionId);
+            final fallbackStop =
+                await _createFallbackStopForPassenger(passenger, regionId);
             if (fallbackStop != null) {
-              final stopKey = '${fallbackStop['latitude']}_${fallbackStop['longitude']}';
+              final stopKey =
+                  '${fallbackStop['latitude']}_${fallbackStop['longitude']}';
               if (!addedStops.contains(stopKey)) {
                 stops.add(fallbackStop);
                 addedStops.add(stopKey);
-                print('[AutoRouteService] Yedek durak oluşturuldu: ${fallbackStop['name']} (${passenger['name']} için)');
+                print(
+                    '[AutoRouteService] Yedek durak oluşturuldu: ${fallbackStop['name']} (${passenger['name']} için)');
               }
             }
           }
         }
       } catch (e) {
-        print('[AutoRouteService] ${passenger['name']} için ana yol durağı işlemi hatası: $e');
+        print(
+            '[AutoRouteService] ${passenger['name']} için ana yol durağı işlemi hatası: $e');
         try {
-          final fallbackStop = await _createFallbackStopForPassenger(passenger, regionId);
+          final fallbackStop =
+              await _createFallbackStopForPassenger(passenger, regionId);
           if (fallbackStop != null) {
-            final stopKey = '${fallbackStop['latitude']}_${fallbackStop['longitude']}';
+            final stopKey =
+                '${fallbackStop['latitude']}_${fallbackStop['longitude']}';
             if (!addedStops.contains(stopKey)) {
               stops.add(fallbackStop);
               addedStops.add(stopKey);
-              print('[AutoRouteService] Hata sonrası yedek durak oluşturuldu: ${fallbackStop['name']} (${passenger['name']} için)');
+              print(
+                  '[AutoRouteService] Hata sonrası yedek durak oluşturuldu: ${fallbackStop['name']} (${passenger['name']} için)');
             }
           }
         } catch (fallbackError) {
-          print('[AutoRouteService] ${passenger['name']} için yedek durak oluşturulamadı: $fallbackError');
+          print(
+              '[AutoRouteService] ${passenger['name']} için yedek durak oluşturulamadı: $fallbackError');
         }
       }
     }
     print('[AutoRouteService] Toplam ${stops.length} durak bulundu');
     return stops;
   }
+
   static Future<Map<String, dynamic>?> _findMainRoadStopForPassenger(
     Map<String, dynamic> passenger,
     String regionId,
@@ -203,10 +236,12 @@ class AutoRouteService {
       }
       return null;
     } catch (e) {
-      print('[AutoRouteService] Ana yol durağı bulunamadı: ${passenger['name']} - $e');
+      print(
+          '[AutoRouteService] Ana yol durağı bulunamadı: ${passenger['name']} - $e');
       return null;
     }
   }
+
   static Future<void> _createMainRoadStopForPassenger(
     Map<String, dynamic> passenger,
     String regionId,
@@ -217,13 +252,15 @@ class AutoRouteService {
         print('[AutoRouteService] ${passenger['name']} için adres bilgisi yok');
         return;
       }
-      final validatedCoordinates = await GeocodingService.validateAndFixCoordinates(
+      final validatedCoordinates =
+          await GeocodingService.validateAndFixCoordinates(
         address: address.toString(),
         latitude: 0.0,
         longitude: 0.0,
       );
       if (validatedCoordinates == null) {
-        print('[AutoRouteService] ${passenger['name']} için koordinat alınamadı: $address');
+        print(
+            '[AutoRouteService] ${passenger['name']} için koordinat alınamadı: $address');
         return;
       }
       await _firestore.collection('enhanced_stops').add({
@@ -239,11 +276,14 @@ class AutoRouteService {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      print('[AutoRouteService] ${passenger['name']} için ana yol durağı oluşturuldu (koordinatlar doğrulandı)');
+      print(
+          '[AutoRouteService] ${passenger['name']} için ana yol durağı oluşturuldu (koordinatlar doğrulandı)');
     } catch (e) {
-      print('[AutoRouteService] ${passenger['name']} için ana yol durağı oluşturma hatası: $e');
+      print(
+          '[AutoRouteService] ${passenger['name']} için ana yol durağı oluşturma hatası: $e');
     }
   }
+
   static Future<Map<String, dynamic>?> _createFallbackStopForPassenger(
     Map<String, dynamic> passenger,
     String regionId,
@@ -254,15 +294,18 @@ class AutoRouteService {
         print('[AutoRouteService] ${passenger['name']} için adres bilgisi yok');
         return null;
       }
-      final validatedCoordinates = await GeocodingService.validateAndFixCoordinates(
+      final validatedCoordinates =
+          await GeocodingService.validateAndFixCoordinates(
         address: address.toString(),
         latitude: 0.0,
         longitude: 0.0,
       );
       if (validatedCoordinates == null) {
-        print('[AutoRouteService] ${passenger['name']} için yedek durak koordinatı alınamadı');
+        print(
+            '[AutoRouteService] ${passenger['name']} için yedek durak koordinatı alınamadı');
         final fallbackStop = {
-          'id': 'fallback_${passenger['id']}_${DateTime.now().millisecondsSinceEpoch}',
+          'id':
+              'fallback_${passenger['id']}_${DateTime.now().millisecondsSinceEpoch}',
           'name': '${passenger['name']} Durağı (Koordinat Gerekli)',
           'address': address.toString(),
           'latitude': 0.0,
@@ -276,7 +319,8 @@ class AutoRouteService {
         return fallbackStop;
       }
       final fallbackStop = {
-        'id': 'fallback_${passenger['id']}_${DateTime.now().millisecondsSinceEpoch}',
+        'id':
+            'fallback_${passenger['id']}_${DateTime.now().millisecondsSinceEpoch}',
         'name': '${passenger['name']} Durağı',
         'address': address.toString(),
         'latitude': validatedCoordinates['latitude']!,
@@ -287,13 +331,16 @@ class AutoRouteService {
         'isFallback': true,
         'coordinatesValidated': true,
       };
-      print('[AutoRouteService] ${passenger['name']} için yedek durak oluşturuldu (koordinatlar doğrulandı)');
+      print(
+          '[AutoRouteService] ${passenger['name']} için yedek durak oluşturuldu (koordinatlar doğrulandı)');
       return fallbackStop;
     } catch (e) {
-      print('[AutoRouteService] ${passenger['name']} için yedek durak oluşturma hatası: $e');
+      print(
+          '[AutoRouteService] ${passenger['name']} için yedek durak oluşturma hatası: $e');
       return null;
     }
   }
+
   static Future<String?> _generateStandardAutoRoute({
     required String driverId,
     required String regionId,
@@ -303,7 +350,8 @@ class AutoRouteService {
     required List<Map<String, dynamic>> stops,
   }) async {
     try {
-      final routeName = _generateRouteName(routeType, routeDate, passengers.length);
+      final routeName =
+          _generateRouteName(routeType, routeDate, passengers.length);
       final routeId = await _createRoute(
         driverId: driverId,
         regionId: regionId,
@@ -319,12 +367,12 @@ class AutoRouteService {
       return 'Standart rota oluşturulurken hata: $e';
     }
   }
-  static Future<Map<String, double>?> _getDriverCurrentLocation(String driverId) async {
+
+  static Future<Map<String, double>?> _getDriverCurrentLocation(
+      String driverId) async {
     try {
-      final locationDoc = await _firestore
-          .collection('live_locations')
-          .doc(driverId)
-          .get();
+      final locationDoc =
+          await _firestore.collection('live_locations').doc(driverId).get();
       if (locationDoc.exists) {
         final locationData = locationDoc.data()!;
         return {
@@ -339,6 +387,7 @@ class AutoRouteService {
       return null;
     }
   }
+
   static Future<List<Map<String, dynamic>>> _createMultiStopRoute(
     List<Map<String, dynamic>> stops,
     Map<String, double> driverLocation,
@@ -348,7 +397,8 @@ class AutoRouteService {
     final List<Map<String, dynamic>> expandedStops = [];
     for (final passenger in activePassengers) {
       final mainRoadStop = stops.firstWhere(
-        (stop) => (stop['passengerIds'] as List?)?.contains(passenger['id']) ?? false,
+        (stop) =>
+            (stop['passengerIds'] as List?)?.contains(passenger['id']) ?? false,
         orElse: () => {},
       );
       if (mainRoadStop.isNotEmpty) {
@@ -359,11 +409,16 @@ class AutoRouteService {
           'estimatedTime': 1,
         });
         expandedStops.add({
-          'id': 'passenger_${passenger['id']}_${DateTime.now().millisecondsSinceEpoch}',
+          'id':
+              'passenger_${passenger['id']}_${DateTime.now().millisecondsSinceEpoch}',
           'name': '${passenger['name']} Evi',
           'address': passenger['address'] ?? '',
-          'latitude': passenger['latitude']?.toDouble() ?? mainRoadStop['latitude']?.toDouble() ?? 0.0,
-          'longitude': passenger['longitude']?.toDouble() ?? mainRoadStop['longitude']?.toDouble() ?? 0.0,
+          'latitude': passenger['latitude']?.toDouble() ??
+              mainRoadStop['latitude']?.toDouble() ??
+              0.0,
+          'longitude': passenger['longitude']?.toDouble() ??
+              mainRoadStop['longitude']?.toDouble() ??
+              0.0,
           'passengerIds': [passenger['id']],
           'stopType': 'passenger',
           'primaryPassengerId': passenger['id'],
@@ -377,13 +432,16 @@ class AutoRouteService {
         driverLocation: driverLocation,
         stops: expandedStops,
       );
-      print('[AutoRouteService] Waypoints ile ${optimizedStops.length} durak optimize edildi');
+      print(
+          '[AutoRouteService] Waypoints ile ${optimizedStops.length} durak optimize edildi');
       return optimizedStops;
     } catch (e) {
-      print('[AutoRouteService] Waypoints optimizasyon hatası: $e, fallback kullanılıyor');
+      print(
+          '[AutoRouteService] Waypoints optimizasyon hatası: $e, fallback kullanılıyor');
       return _sortStopsByDistanceFromDriver(expandedStops, driverLocation);
     }
   }
+
   static List<Map<String, dynamic>> _sortStopsByDistanceFromDriver(
     List<Map<String, dynamic>> stops,
     Map<String, double> driverLocation,
@@ -403,7 +461,8 @@ class AutoRouteService {
       stopsWithDistance.add(stopWithDistance);
     }
     final List<Map<String, dynamic>> optimizedRoute = [];
-    final List<Map<String, dynamic>> remainingStops = List.from(stopsWithDistance);
+    final List<Map<String, dynamic>> remainingStops =
+        List.from(stopsWithDistance);
     remainingStops.sort((a, b) {
       final distanceA = a['distanceFromDriver'] as double;
       final distanceB = b['distanceFromDriver'] as double;
@@ -433,23 +492,31 @@ class AutoRouteService {
       stop.remove('distanceFromDriver');
       return stop;
     }).toList();
-    print('[AutoRouteService] Rota optimizasyonu tamamlandı: ${result.length} durak sıralandı');
+    print(
+        '[AutoRouteService] Rota optimizasyonu tamamlandı: ${result.length} durak sıralandı');
     return result;
   }
-  static double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+
+  static double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
     const double earthRadius = 6371;
     final double dLat = _degreesToRadians(lat2 - lat1);
     final double dLon = _degreesToRadians(lon2 - lon1);
     final double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_degreesToRadians(lat1)) * cos(_degreesToRadians(lat2)) *
-        sin(dLon / 2) * sin(dLon / 2);
+        cos(_degreesToRadians(lat1)) *
+            cos(_degreesToRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
     final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return earthRadius * c;
   }
+
   static double _degreesToRadians(double degrees) {
     return degrees * (pi / 180);
   }
-  static void _startListeningForPermissionChanges(String driverId, String region) {
+
+  static void _startListeningForPermissionChanges(
+      String driverId, String region) {
     print('[AutoRouteService] İzin değişiklikleri dinleniyor...');
     _firestore
         .collection('permissions')
@@ -457,14 +524,17 @@ class AutoRouteService {
         .snapshots()
         .listen((snapshot) {
       if (snapshot.docChanges.isNotEmpty) {
-        print('[AutoRouteService] İzin değişikliği tespit edildi, rota güncelleniyor...');
+        print(
+            '[AutoRouteService] İzin değişikliği tespit edildi, rota güncelleniyor...');
         Future.delayed(const Duration(seconds: 2), () {
           updateRouteForPermissionChange(driverId, region);
         });
       }
     });
   }
-  static Future<void> updateRouteForPermissionChange(String driverId, String region) async {
+
+  static Future<void> updateRouteForPermissionChange(
+      String driverId, String region) async {
     try {
       final now = DateTime.now();
       final currentHour = now.hour;
@@ -476,7 +546,8 @@ class AutoRouteService {
       } else {
         return;
       }
-      print('[AutoRouteService] İzin değişikliği nedeniyle $routeType rotası güncelleniyor...');
+      print(
+          '[AutoRouteService] İzin değişikliği nedeniyle $routeType rotası güncelleniyor...');
       await deleteExistingAutoRoutes(driverId, now, routeType);
       final result = await generateAutoRoute(
         driverId: driverId,
@@ -493,6 +564,7 @@ class AutoRouteService {
       print('[AutoRouteService] Rota güncelleme hatası: $e');
     }
   }
+
   static Future<String?> generateAutoRoute({
     required String driverId,
     required String regionId,
@@ -506,10 +578,9 @@ class AutoRouteService {
       routeType: routeType,
     );
   }
+
   static Future<List<Map<String, dynamic>>> _getDriverPassengers(
-    String driverId, 
-    String regionId
-  ) async {
+      String driverId, String regionId) async {
     final snapshot = await _firestore
         .collection('passengers')
         .where('driverId', isEqualTo: driverId)
@@ -522,6 +593,7 @@ class AutoRouteService {
       return data;
     }).toList();
   }
+
   static Future<List<Map<String, dynamic>>> _filterActivePassengers(
     List<Map<String, dynamic>> passengers,
     DateTime routeDate,
@@ -539,11 +611,13 @@ class AutoRouteService {
         activePassengers.add(passenger);
         print('[AutoRouteService] Aktif yolcu: ${passenger['name']}');
       } else {
-        print('[AutoRouteService] İzinli yolcu (rotadan çıkarıldı): ${passenger['name']}');
+        print(
+            '[AutoRouteService] İzinli yolcu (rotadan çıkarıldı): ${passenger['name']}');
       }
     }
     return activePassengers;
   }
+
   static Future<bool> _checkUserPermissionForDate(
     String userId,
     DateTime targetDate,
@@ -560,15 +634,16 @@ class AutoRouteService {
       return false;
     }
   }
+
   static bool _checkPassengerPermission(
-    List<PermissionModel> permissions, 
+    List<PermissionModel> permissions,
     String routeType,
     DateTime targetDate,
   ) {
     final today = DateTime.now();
-    final isToday = targetDate.year == today.year && 
-                   targetDate.month == today.month && 
-                   targetDate.day == today.day;
+    final isToday = targetDate.year == today.year &&
+        targetDate.month == today.month &&
+        targetDate.day == today.day;
     final isTomorrow = targetDate.difference(today).inDays == 1;
     for (final permission in permissions) {
       switch (permission.type) {
@@ -593,9 +668,9 @@ class AutoRouteService {
     }
     return false;
   }
+
   static Future<List<Map<String, dynamic>>> _getPassengerStops(
-    List<Map<String, dynamic>> passengers
-  ) async {
+      List<Map<String, dynamic>> passengers) async {
     final List<Map<String, dynamic>> stops = [];
     final Set<String> addedStops = {};
     for (final passenger in passengers) {
@@ -610,9 +685,9 @@ class AutoRouteService {
     }
     return stops;
   }
+
   static Future<Map<String, dynamic>?> _findStopForPassenger(
-    Map<String, dynamic> passenger
-  ) async {
+      Map<String, dynamic> passenger) async {
     try {
       final enhancedStopsSnapshot = await _firestore
           .collection('enhanced_stops')
@@ -650,15 +725,14 @@ class AutoRouteService {
       return null;
     }
   }
+
   static String _generateRouteName(
-    String routeType, 
-    DateTime routeDate, 
-    int passengerCount
-  ) {
+      String routeType, DateTime routeDate, int passengerCount) {
     final dateStr = '${routeDate.day}/${routeDate.month}/${routeDate.year}';
     final timeStr = routeType == 'morning' ? 'Sabah' : 'Akşam';
     return 'Otomatik $timeStr Rotası - $dateStr ($passengerCount yolcu)';
   }
+
   static Future<String> _createRoute({
     required String driverId,
     required String regionId,
@@ -670,10 +744,12 @@ class AutoRouteService {
   }) async {
     DateTime startTime, endTime;
     if (routeType == 'morning') {
-      startTime = DateTime(routeDate.year, routeDate.month, routeDate.day, 7, 0);
+      startTime =
+          DateTime(routeDate.year, routeDate.month, routeDate.day, 7, 0);
       endTime = DateTime(routeDate.year, routeDate.month, routeDate.day, 9, 0);
     } else {
-      startTime = DateTime(routeDate.year, routeDate.month, routeDate.day, 16, 0);
+      startTime =
+          DateTime(routeDate.year, routeDate.month, routeDate.day, 16, 0);
       endTime = DateTime(routeDate.year, routeDate.month, routeDate.day, 18, 0);
     }
     final routeDoc = await _firestore.collection('routes').add({
@@ -694,7 +770,9 @@ class AutoRouteService {
     });
     return routeDoc.id;
   }
-  static Future<String?> generateTodayRoutes(String driverId, String regionId) async {
+
+  static Future<String?> generateTodayRoutes(
+      String driverId, String regionId) async {
     final today = DateTime.now();
     final morningResult = await generateAutoRoute(
       driverId: driverId,
@@ -717,7 +795,9 @@ class AutoRouteService {
     }
     return null;
   }
-  static Future<String?> generateTomorrowRoutes(String driverId, String regionId) async {
+
+  static Future<String?> generateTomorrowRoutes(
+      String driverId, String regionId) async {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final morningResult = await generateAutoRoute(
       driverId: driverId,
@@ -740,30 +820,35 @@ class AutoRouteService {
     }
     return null;
   }
+
   static Future<void> deleteExistingAutoRoutes(
-    String driverId, 
+    String driverId,
     DateTime routeDate,
     String routeType,
   ) async {
     try {
-      final startOfDay = DateTime(routeDate.year, routeDate.month, routeDate.day);
+      final startOfDay =
+          DateTime(routeDate.year, routeDate.month, routeDate.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
       final snapshot = await _firestore
           .collection('routes')
           .where('driverId', isEqualTo: driverId)
           .where('isAutoGenerated', isEqualTo: true)
           .where('routeType', isEqualTo: routeType)
-          .where('routeDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('routeDate',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('routeDate', isLessThan: Timestamp.fromDate(endOfDay))
           .get();
       for (final doc in snapshot.docs) {
         await doc.reference.delete();
       }
-      print('[AutoRouteService] Eski otomatik rotalar silindi: ${snapshot.docs.length} adet');
+      print(
+          '[AutoRouteService] Eski otomatik rotalar silindi: ${snapshot.docs.length} adet');
     } catch (e) {
       print('[AutoRouteService] Eski rotalar silinirken hata: $e');
     }
   }
+
   static Future<void> generateDailyRoutes(DateTime date) async {
     try {
       final driversSnapshot = await _firestore
@@ -777,7 +862,7 @@ class AutoRouteService {
         final regionId = driverData['regionId'] as String?;
         if (regionId == null) continue;
         final activePassengers = await _getActivePassengersForDriver(
-          driverId, 
+          driverId,
           date,
         );
         if (activePassengers.isEmpty) continue;
@@ -789,13 +874,16 @@ class AutoRouteService {
       rethrow;
     }
   }
+
   static Future<List<Map<String, dynamic>>> _getActivePassengersForDriver(
     String driverId,
     DateTime date,
   ) async {
     final passengers = await _getDriverPassengers(driverId, '');
-    final morningActive = await _filterActivePassengers(passengers, date, 'morning');
-    final eveningActive = await _filterActivePassengers(passengers, date, 'evening');
+    final morningActive =
+        await _filterActivePassengers(passengers, date, 'morning');
+    final eveningActive =
+        await _filterActivePassengers(passengers, date, 'evening');
     final allActive = <String, Map<String, dynamic>>{};
     for (final passenger in morningActive) {
       allActive[passenger['id']] = passenger;
@@ -805,13 +893,15 @@ class AutoRouteService {
     }
     return allActive.values.toList();
   }
+
   static Future<void> _createMorningRoute(
     String driverId,
     String regionId,
     List<Map<String, dynamic>> passengers,
     DateTime date,
   ) async {
-    final morningPassengers = await _filterActivePassengers(passengers, date, 'morning');
+    final morningPassengers =
+        await _filterActivePassengers(passengers, date, 'morning');
     if (morningPassengers.isNotEmpty) {
       await generateAutoRoute(
         driverId: driverId,
@@ -821,13 +911,15 @@ class AutoRouteService {
       );
     }
   }
+
   static Future<void> _createEveningRoute(
     String driverId,
     String regionId,
     List<Map<String, dynamic>> passengers,
     DateTime date,
   ) async {
-    final eveningPassengers = await _filterActivePassengers(passengers, date, 'evening');
+    final eveningPassengers =
+        await _filterActivePassengers(passengers, date, 'evening');
     if (eveningPassengers.isNotEmpty) {
       await generateAutoRoute(
         driverId: driverId,

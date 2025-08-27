@@ -30,6 +30,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../service/unified_route_optimization_service.dart';
 
 class EnhancedMapScreen extends StatefulWidget {
   final String driverId;
@@ -678,6 +679,32 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         print('   ─────────────────────────');
       }
       print('🔍 === TOPLAM OPTİMİZE: ${optimizedStops.length} ===');
+
+      // Cache key oluştur ve passenger panel ile paylaş
+      if (_currentPosition != null) {
+        // Passenger panel ile tamamen aynı format kullan
+        final cacheKey =
+            'driver_${widget.driverId}_${validStops.length}_${_currentPosition!.latitude.toStringAsFixed(6)}_${_currentPosition!.longitude.toStringAsFixed(6)}';
+        print('🔑 Cache key oluşturuldu: $cacheKey');
+        print('📱 Passenger panel bu key ile aynı rotayı alacak');
+        print(
+            '📍 Driver konumu: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}');
+        print('🚌 Durak sayısı: ${validStops.length}');
+        print('👤 Driver ID: ${widget.driverId}');
+
+        // Cache'e yaz (passenger panel okuyabilsin)
+        _writeRouteToCache(
+            cacheKey,
+            validStops
+                .map((stop) => {
+                      'latitude': stop.lat,
+                      'longitude': stop.lng,
+                      'stopId': stop.id,
+                      'address': stop.address,
+                      'order': stop.order ?? 0,
+                    })
+                .toList());
+      }
     } catch (e) {
       print('❌ Rota optimizasyonu hatası: $e');
       setState(() {
@@ -3803,6 +3830,16 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     );
   }
 
+  /// Store cache key for passenger panel access
+  void _storeCacheKeyForPassengerPanel(String cacheKey) {
+    // Store in a way that passenger panel can access
+    // This could be through Firebase, shared preferences, or a global service
+    print('🔐 Cache key passenger panel için saklandı: $cacheKey');
+
+    // TODO: Implement proper storage mechanism for passenger panel access
+    // For now, we'll use a simple approach with the unified service
+  }
+
   LatLngBounds _calculateBounds(List<LatLng> points) {
     if (points.isEmpty) {
       return LatLngBounds(
@@ -3824,5 +3861,59 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       southwest: LatLng(minLat, minLng),
       northeast: LatLng(maxLat, maxLng),
     );
+  }
+
+  /// Cache'e rota yazar (passenger panel okuyabilsin)
+  void _writeRouteToCache(String cacheKey, List<Map<String, dynamic>> stops) {
+    try {
+      // Stops'ları waypoint formatına çevir
+      final waypoints = stops
+          .map((stop) => {
+                'latitude':
+                    (stop['latitude'] ?? stop['lat'])?.toDouble() ?? 0.0,
+                'longitude':
+                    (stop['longitude'] ?? stop['lng'])?.toDouble() ?? 0.0,
+                'stopId': stop['stopId'] ?? stop['id'],
+                'address': stop['address'],
+                'order': stop['order'] ?? 0,
+              })
+          .toList();
+
+      // Unified service cache'e yaz
+      UnifiedRouteOptimizationService.cacheRoute(cacheKey, waypoints);
+      print('💾 Rota cache\'e yazıldı: $cacheKey (${waypoints.length} durak)');
+      
+      // Cache istatistiklerini kontrol et
+      final stats = UnifiedRouteOptimizationService.getCacheStatistics();
+      print('📊 Cache istatistikleri: ${stats['cacheSize']} rota, ${stats['timestampCount']} timestamp');
+      
+      // Cache'de yazılan rotayı doğrula
+      final cachedRoute = UnifiedRouteOptimizationService.getCachedRoute(cacheKey);
+      if (cachedRoute != null) {
+        print('✅ Cache doğrulaması başarılı: ${cachedRoute.length} durak bulundu');
+        print('🔍 İlk durak: ${cachedRoute.first['address']} (${cachedRoute.first['latitude']}, ${cachedRoute.first['longitude']})');
+        print('🔍 Son durak: ${cachedRoute.last['address']} (${cachedRoute.last['latitude']}, ${cachedRoute.last['longitude']})');
+      } else {
+        print('❌ Cache doğrulaması başarısız: Rota bulunamadı');
+      }
+    } catch (e) {
+      print('❌ Cache yazma hatası: $e');
+    }
+  }
+
+  /// Debug: Cache'i temizle (test için)
+  void _clearCacheForTesting() {
+    try {
+      final stats = UnifiedRouteOptimizationService.getCacheStatistics();
+      print('🧹 Test öncesi cache istatistikleri: ${stats['cacheSize']} rota');
+      
+      UnifiedRouteOptimizationService.clearAllCache();
+      
+      final newStats = UnifiedRouteOptimizationService.getCacheStatistics();
+      print('🧹 Test sonrası cache istatistikleri: ${newStats['cacheSize']} rota');
+      print('✅ Cache test için temizlendi');
+    } catch (e) {
+      print('❌ Cache temizleme hatası: $e');
+    }
   }
 }

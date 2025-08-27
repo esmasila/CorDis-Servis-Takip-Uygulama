@@ -21,6 +21,7 @@ import '../service/arrival_time_service.dart';
 import '../service/proximity_notification_service.dart';
 import '../service/eta_calculation_service.dart';
 import '../service/chat_service.dart';
+
 class PassengerHome extends StatefulWidget {
   final String userId;
   final String userName;
@@ -40,6 +41,7 @@ class PassengerHome extends StatefulWidget {
   @override
   State<PassengerHome> createState() => _PassengerHomeState();
 }
+
 class _PassengerHomeState extends State<PassengerHome> {
   int _selectedIndex = 0;
   bool _isLoading = true;
@@ -78,6 +80,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       } catch (_) {}
     });
   }
+
   @override
   void dispose() {
     _arrivalTimeSubscription?.cancel();
@@ -87,6 +90,7 @@ class _PassengerHomeState extends State<PassengerHome> {
     ProximityNotificationService.dispose();
     super.dispose();
   }
+
   void _initializeProximityNotifications() async {
     await ProximityNotificationService.initialize();
     final user = FirebaseAuth.instance.currentUser;
@@ -106,6 +110,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       }
     }
   }
+
   void _updateNotificationDistance(double newDistance) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -123,28 +128,77 @@ class _PassengerHomeState extends State<PassengerHome> {
       _notificationDistance = newDistance;
     });
   }
+
   void _startArrivalTimeTracking() async {
     final String? driverId = widget.driverId ?? UserSession.driverId;
-    if (driverId == null || driverId.isEmpty) return;
+    print('🔍 PassengerHome: _startArrivalTimeTracking başladı');
+    print('   - DriverId: $driverId');
+    print('   - Widget DriverId: ${widget.driverId}');
+    print('   - UserSession DriverId: ${UserSession.driverId}');
+
+    if (driverId == null || driverId.isEmpty) {
+      print('❌ PassengerHome: DriverId bulunamadı, tracking başlatılamadı');
+      return;
+    }
+
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      print('❌ PassengerHome: Kullanıcı bulunamadı');
+      return;
+    }
+
+    print('👤 PassengerHome: Kullanıcı ID: ${user.uid}');
+
     _isDriverActive = await ArrivalTimeService.isDriverActive(driverId);
+    print('🚗 PassengerHome: Şoför aktif mi: $_isDriverActive');
+
     if (_isDriverActive) {
+      print('✅ PassengerHome: ArrivalTimeService stream başlatılıyor');
       _arrivalTimeSubscription = ArrivalTimeService.getArrivalTimeStream(
         passengerId: user.uid,
         driverId: driverId,
       ).listen((data) {
+        print('📡 PassengerHome: ArrivalTimeService verisi alındı: $data');
         if (mounted) {
           setState(() {
             _arrivalTimeData = data;
           });
+          print('✅ PassengerHome: _arrivalTimeData güncellendi');
+
+          // Durak bilgilerini de yükle
+          _loadStopInformation();
         }
+      }, onError: (error) {
+        print('❌ PassengerHome: ArrivalTimeService stream hatası: $error');
       });
+    } else {
+      print('⚠️ PassengerHome: Şoför aktif değil, manuel veri çekme deneniyor');
+      // Şoför aktif değilse manuel olarak veri çek
+      try {
+        final data = await ArrivalTimeService.calculateArrivalTime(
+          passengerId: user.uid,
+          driverId: driverId,
+        );
+        print('📡 PassengerHome: Manuel veri çekildi: $data');
+        if (mounted && data != null) {
+          setState(() {
+            _arrivalTimeData = data;
+          });
+          print('✅ PassengerHome: Manuel _arrivalTimeData güncellendi');
+          
+          // Durak bilgilerini de yükle
+          _loadStopInformation();
+        }
+      } catch (e) {
+        print('❌ PassengerHome: Manuel veri çekme hatası: $e');
+      }
     }
+
     if (mounted) {
       setState(() {});
     }
   }
+
   void _initializeMessageCountTracking() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -166,6 +220,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       print('Mesaj sayısı takip hatası: $e');
     }
   }
+
   void _markMessagesAsRead() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _unreadMessageCount == 0) return;
@@ -197,6 +252,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       print('Mesajları okundu olarak işaretleme hatası: $e');
     }
   }
+
   void _initializeETACalculationService() async {
     final user = FirebaseAuth.instance.currentUser;
     final String? driverId = widget.driverId ?? UserSession.driverId;
@@ -219,6 +275,55 @@ class _PassengerHomeState extends State<PassengerHome> {
       print('ETA Calculation Service başlatma hatası: $e');
     }
   }
+
+  // Durak bilgilerini al
+  Future<void> _loadStopInformation() async {
+    try {
+      print('🔍 PassengerHome: Durak bilgileri yükleniyor...');
+
+      final String? driverId = widget.driverId ?? UserSession.driverId;
+      if (driverId == null || driverId.isEmpty) {
+        print('⚠️ PassengerHome: DriverId bulunamadı');
+        return;
+      }
+
+      // Enhanced stops koleksiyonundan durak bilgilerini al
+      final stopsQuery = await FirebaseFirestore.instance
+          .collection('enhanced_stops')
+          .where('driverId', isEqualTo: driverId)
+          .where('isActive', isEqualTo: true)
+          .orderBy('order')
+          .get();
+
+      print('📊 PassengerHome: ${stopsQuery.docs.length} durak bulundu');
+
+      if (stopsQuery.docs.isNotEmpty) {
+        final totalStops = stopsQuery.docs.length;
+        final completedStops = stopsQuery.docs
+            .where((doc) => doc.data()['isCompleted'] == true)
+            .length;
+
+        print(
+            '📊 PassengerHome: Toplam: $totalStops, Tamamlanan: $completedStops');
+
+        // ETA verilerini güncelle
+        if (_arrivalTimeData != null) {
+          setState(() {
+            _arrivalTimeData = {
+              ..._arrivalTimeData!,
+              'totalStopsCount': totalStops,
+              'currentStopIndex': _arrivalTimeData!['currentStopIndex'] ?? 1,
+            };
+          });
+          print(
+              '✅ PassengerHome: ETA verileri güncellendi - totalStops: $totalStops');
+        }
+      }
+    } catch (e) {
+      print('❌ PassengerHome: Durak bilgileri yükleme hatası: $e');
+    }
+  }
+
   void _syncFromUserSession() {
     try {
       if (UserSession.driverId != null && UserSession.driverId!.isNotEmpty) {
@@ -227,6 +332,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       setState(() {});
     } catch (_) {}
   }
+
   Future<void> _loadPassengerData() async {
     try {
       final userDoc = await FirebaseFirestore.instance
@@ -325,12 +431,14 @@ class _PassengerHomeState extends State<PassengerHome> {
       });
     }
   }
+
   String _shortenRegionName(String regionName) {
     if (regionName.contains(' ')) {
       return regionName.split(' ')[0];
     }
     return regionName;
   }
+
   String _getAppBarTitle() {
     switch (_selectedIndex) {
       case 0:
@@ -349,6 +457,7 @@ class _PassengerHomeState extends State<PassengerHome> {
         return 'CORDİS';
     }
   }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -494,6 +603,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       ),
     );
   }
+
   Widget _buildMessageIcon() {
     return Stack(
       children: [
@@ -524,6 +634,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       ],
     );
   }
+
   Widget _buildNavActiveIcon(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(6),
@@ -534,6 +645,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       child: Icon(icon, size: 22),
     );
   }
+
   Widget _buildHomeScreen() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -868,6 +980,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       ),
     );
   }
+
   Widget _buildEnhancedETACard() {
     final estimatedMinutes = _enhancedETAData?.remainingMinutes ??
         (_arrivalTimeData?['eta'] as int? ?? 0);
@@ -882,6 +995,17 @@ class _PassengerHomeState extends State<PassengerHome> {
     final trafficFactor = 1.0;
     final isRealTime = _enhancedETAData?.isDriverActive ?? _isDriverActive;
     final lastUpdate = _enhancedETAData?.lastUpdated ?? DateTime.now();
+
+    // Debug bilgisi ekle
+    print('🔍 PassengerHome: ETA Card verileri:');
+    print('   - estimatedMinutes: $estimatedMinutes');
+    print('   - stopName: $stopName');
+    print('   - stopOrder: $stopOrder');
+    print('   - totalStops: $totalStops');
+    print('   - driverDistance: $driverDistance');
+    print('   - _arrivalTimeData: $_arrivalTimeData');
+    print('   - _enhancedETAData: $_enhancedETAData');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -1082,7 +1206,7 @@ class _PassengerHomeState extends State<PassengerHome> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Sıra: $stopOrder/$totalStops',
+                      'Sıra: ${stopOrder > 0 ? stopOrder : 1}/${totalStops > 0 ? totalStops : 1}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.white70,
@@ -1260,6 +1384,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       ),
     );
   }
+
   String _getCleanRegionName() {
     if (widget.regionName == null) return 'Atanmamış';
     String regionName = widget.regionName!;
@@ -1279,6 +1404,7 @@ class _PassengerHomeState extends State<PassengerHome> {
     }
     return regionName;
   }
+
   String _getCleanVehiclePlate() {
     if (_vehiclePlate == null) return 'Bilinmiyor';
     String plate = _vehiclePlate!;
@@ -1303,6 +1429,7 @@ class _PassengerHomeState extends State<PassengerHome> {
     }
     return plate;
   }
+
   Widget _buildInfoRow(String label, String value, IconData icon,
       [bool isWhiteTheme = false]) {
     return Row(
@@ -1332,6 +1459,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       ],
     );
   }
+
   Widget _buildQuickActionCard(
       String title, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
@@ -1392,12 +1520,15 @@ class _PassengerHomeState extends State<PassengerHome> {
       ),
     );
   }
+
   Widget _buildProfileScreen() {
     return const ProfileScreen();
   }
+
   Widget _buildPermissionsScreen() {
     return const PermissionScreen();
   }
+
   Widget _buildTrackingScreen() {
     return EnhancedServiceTracking(
       passengerId: widget.userId,
@@ -1405,9 +1536,11 @@ class _PassengerHomeState extends State<PassengerHome> {
       hideAppBar: true,
     );
   }
+
   Widget _buildDistanceScreen() {
     return const DistanceAlertScreen();
   }
+
   Widget _buildMessagesScreen() {
     return ChatScreen(
       onScreenOpen: () {
@@ -1415,6 +1548,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       },
     );
   }
+
   Future<void> _showAddressDialog() async {
     final TextEditingController addressController = TextEditingController();
     showDialog(
@@ -1494,6 +1628,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       ),
     );
   }
+
   Future<void> _selectLocationFromMap(
       TextEditingController addressController) async {
     Navigator.pop(context);
@@ -1519,6 +1654,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       }
     }
   }
+
   Future<void> _persistSelectedLocation({
     required String address,
     double? latitude,
@@ -1566,6 +1702,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       }
     }
   }
+
   Future<void> _saveAddress(String address) async {
     if (address.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1600,6 +1737,7 @@ class _PassengerHomeState extends State<PassengerHome> {
       );
     }
   }
+
   Future<void> _signOut() async {
     try {
       await UserSession.clear();
@@ -1620,11 +1758,13 @@ class _PassengerHomeState extends State<PassengerHome> {
     }
   }
 }
+
 class MapSelectionScreen extends StatefulWidget {
   const MapSelectionScreen({super.key});
   @override
   State<MapSelectionScreen> createState() => _MapSelectionScreenState();
 }
+
 class _MapSelectionScreenState extends State<MapSelectionScreen> {
   GoogleMapController? _mapController;
   LatLng? _selectedLocation;
@@ -1637,6 +1777,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     super.initState();
     _getCurrentLocation();
   }
+
   Future<void> _getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -1670,6 +1811,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       await _fallbackToActiveStop();
     }
   }
+
   Future<void> _fallbackToActiveStop() async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -1695,6 +1837,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       }
     } catch (_) {}
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1812,6 +1955,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       ),
     );
   }
+
   Future<void> _onMapTap(LatLng location) async {
     setState(() {
       _selectedLocation = location;

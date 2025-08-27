@@ -208,7 +208,7 @@ class ETACalculationService {
       }
       final passengerStopQuery = await FirebaseFirestore.instance
           .collection('enhanced_stops')
-          .where('passengerId', isEqualTo: passengerId)
+          .where('passengerIds', arrayContains: passengerId)
           .where('isActive', isEqualTo: true)
           .limit(1)
           .get();
@@ -302,10 +302,14 @@ class ETACalculationService {
           .where('isActive', isEqualTo: true)
           .get();
       for (final doc in passengersQuery.docs) {
-        final passengerId = doc.data()['passengerId'] as String;
-        final etaData = await _calculateRealtimeETA(passengerId, driverId);
-        if (etaData != null) {
-          etaMap[passengerId] = etaData;
+        final data = doc.data();
+        final passengerIds = List<String>.from(data['passengerIds'] ?? []);
+        if (passengerIds.isNotEmpty) {
+          final passengerId = passengerIds.first;
+          final etaData = await _calculateRealtimeETA(passengerId, driverId);
+          if (etaData != null) {
+            etaMap[passengerId] = etaData;
+          }
         }
       }
     } catch (e) {
