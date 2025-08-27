@@ -80,7 +80,15 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0018.jpg" width="90" alt="Bildirim Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
 
-**Detaylı Açıklama:**Dashboard Hızlı İşlemler, Şoför/Kullanıcı/Durak/Bölge yönetimi (ekleme, listeleme, bölgeye göre sayım) — hepsi tek panelde.
+**Admin Panel Özellikleri (1. Bölüm):**
+- **Mobil Admin Panel**: Hızlı erişim ve mobil uyumlu yönetim
+- **Dashboard Kontrolü**: Sistem durumu ve genel bakış
+- **Şoför Takibi**: Gerçek zamanlı şoför konum takibi
+- **Bölge Canlı Takip**: Bölge bazlı servis operasyonları
+- **İzin Yönetimi**: Şoför izinleri ve vardiya planlaması
+- **Canlı Harita**: Gerçek zamanlı harita üzerinde takip
+- **Bildirim Yönetimi**: Sistem uyarıları ve bildirimler
+
 
 #### **2️⃣ Yönetim Paneli & Canlı Takip**
 <div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin: 20px 0;">
@@ -94,7 +102,17 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/admin-screenshots/IMG-20250825-WA0026.jpg" width="90" alt="Admin Ana Dashboard" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
 
-**Detaylı Açıklama:**Servis Takip + Mesaj/Bildirim/İzin + Şoför Takibi + Canlı Harita — durak sırası ve bölge istatistikleri tek panelde.
+**Admin Panel Özellikleri (2. Bölüm):**
+- **Mesaj Yönetimi**: Şoför ve yolcu mesajlaşma sistemi
+- **Servis Takip**: Canlı servis operasyon takibi
+- **Bölge Yönetimi**: Servis bölgeleri ve organizasyon
+- **Durak Yönetimi**: Durak ekleme, düzenleme ve planlama
+- **Kullanıcı Yönetimi**: Yolcu hesap yönetimi
+- **Şoför Yönetimi**: Şoför hesap ve yetki yönetimi
+- **Drawer Menü**: Hızlı erişim navigasyon menüsü
+- **Ana Dashboard**: Sistem genel durumu ve istatistikler
+
+
 
 
 ---
@@ -120,15 +138,15 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 #### **👥 Yolcu Ekranları**
 
 <div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin: 20px 0;">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0034.jpg" width="90" alt="Yolcu Ana Ekran" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0035.jpg" width="90" alt="Yolcu Servis Takibi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0036.jpg" width="90" alt="Yolcu Harita Görünümü" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0037.jpg" width="90" alt="Yolcu Durak Bilgileri" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0038.jpg" width="90" alt="Yolcu Mesajlaşma" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0039.jpg" width="90" alt="Yolcu Bildirim Ayarları" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250827-WA0017.jpg" width="90" alt="Yolcu Profil Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250827-WA0018.jpg" width="90" alt="Yolcu Rota Detayları" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250827-WA0017.jpg" width="90" alt="Yolcu Profil Yönetimi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
   <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250827-WA0019.jpg" width="90" alt="Yolcu ETA Hesaplama" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0038.jpg" width="90" alt="Yolcu Mesajlaşma" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0034.jpg" width="90" alt="Yolcu Ana Ekran" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0039.jpg" width="90" alt="Yolcu Bildirim Ayarları" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0037.jpg" width="90" alt="Yolcu Durak Bilgileri" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0036.jpg" width="90" alt="Yolcu Harita Görünümü" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/passenger-screenshots/IMG-20250825-WA0035.jpg" width="90" alt="Yolcu Servis Takibi" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
 </div>
 
 **Yolcu Panel Özellikleri:**
@@ -221,5 +239,5 @@ if (SimulationService.isSimulationActive) {
 - [ ] **v2.3**: IoT cihaz entegrasyonu
 - [ ] **v2.4**: Blockchain tabanlı güvenlik
 
----
+
 
