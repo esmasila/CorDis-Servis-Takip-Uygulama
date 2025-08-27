@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widget/snackbar.dart';
 import '../../utils/app_colors.dart';
+
 class EmployeeManagementScreen extends StatefulWidget {
   const EmployeeManagementScreen({Key? key}) : super(key: key);
   @override
   _EmployeeManagementScreenState createState() =>
       _EmployeeManagementScreenState();
 }
+
 class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
@@ -17,11 +19,13 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
   }
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
+
   Future<String> getRegionName(String regionId) async {
     final doc = await FirebaseFirestore.instance
         .collection('regions')
@@ -30,6 +34,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
     final data = doc.data();
     return data?['name'] ?? regionId;
   }
+
   Future<String> _getDriverName(String? driverId) async {
     if (driverId == null || driverId.isEmpty) {
       return 'Atanmamış';
@@ -49,6 +54,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
       return 'Hata';
     }
   }
+
   Future<void> _showDriverAssignmentDialog(
       String passengerId, Map<String, dynamic> passengerData) async {
     String? selectedDriverId = passengerData['driverId'];
@@ -75,21 +81,23 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
                     if (!snapshot.hasData) {
                       return const CircularProgressIndicator();
                     }
-                    
-                    // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
+
                     final activeDrivers = snapshot.data!.docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       final isActive = data['isActive'] == true;
                       final isNotDeleted = data['isDeleted'] != true;
                       final hasValidStatus = data['status'] == 'active';
-                      
-                      // Eğer alanlar null ise varsayılan olarak aktif kabul et
-                      final finalIsActive = data['isActive'] == null ? true : isActive;
-                      final finalIsNotDeleted = data['isDeleted'] == null ? true : isNotDeleted;
-                      
-                      return finalIsActive && finalIsNotDeleted && hasValidStatus;
+
+                      final finalIsActive =
+                          data['isActive'] == null ? true : isActive;
+                      final finalIsNotDeleted =
+                          data['isDeleted'] == null ? true : isNotDeleted;
+
+                      return finalIsActive &&
+                          finalIsNotDeleted &&
+                          hasValidStatus;
                     }).toList();
-                    
+
                     if (activeDrivers.isEmpty) {
                       return Container(
                         padding: const EdgeInsets.all(12),
@@ -103,7 +111,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
                         ),
                       );
                     }
-                    
+
                     return DropdownButtonFormField<String>(
                       decoration: const InputDecoration(
                         labelText: 'Şoför Seçin',
@@ -152,6 +160,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
       ),
     );
   }
+
   Future<void> _assignDriverToPassenger(
       String passengerId, String? driverId) async {
     try {
@@ -175,6 +184,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
       );
     }
   }
+
   Widget _buildRegionFilter() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -214,9 +224,9 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
       },
     );
   }
+
   Widget _buildList(String role) {
-    final collection =
-        role == 'Şoför' ? 'drivers' : 'users';
+    final collection = role == 'Şoför' ? 'drivers' : 'users';
     Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection(
       collection,
     );
@@ -334,6 +344,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

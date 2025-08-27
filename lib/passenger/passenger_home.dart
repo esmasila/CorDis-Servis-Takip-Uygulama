@@ -165,7 +165,6 @@ class _PassengerHomeState extends State<PassengerHome> {
           });
           print('✅ PassengerHome: _arrivalTimeData güncellendi');
 
-          // Durak bilgilerini de yükle
           _loadStopInformation();
         }
       }, onError: (error) {
@@ -173,7 +172,6 @@ class _PassengerHomeState extends State<PassengerHome> {
       });
     } else {
       print('⚠️ PassengerHome: Şoför aktif değil, manuel veri çekme deneniyor');
-      // Şoför aktif değilse manuel olarak veri çek
       try {
         final data = await ArrivalTimeService.calculateArrivalTime(
           passengerId: user.uid,
@@ -185,8 +183,7 @@ class _PassengerHomeState extends State<PassengerHome> {
             _arrivalTimeData = data;
           });
           print('✅ PassengerHome: Manuel _arrivalTimeData güncellendi');
-          
-          // Durak bilgilerini de yükle
+
           _loadStopInformation();
         }
       } catch (e) {
@@ -276,7 +273,6 @@ class _PassengerHomeState extends State<PassengerHome> {
     }
   }
 
-  // Durak bilgilerini al
   Future<void> _loadStopInformation() async {
     try {
       print('🔍 PassengerHome: Durak bilgileri yükleniyor...');
@@ -287,7 +283,6 @@ class _PassengerHomeState extends State<PassengerHome> {
         return;
       }
 
-      // Enhanced stops koleksiyonundan durak bilgilerini al
       final stopsQuery = await FirebaseFirestore.instance
           .collection('enhanced_stops')
           .where('driverId', isEqualTo: driverId)
@@ -306,7 +301,6 @@ class _PassengerHomeState extends State<PassengerHome> {
         print(
             '📊 PassengerHome: Toplam: $totalStops, Tamamlanan: $completedStops');
 
-        // ETA verilerini güncelle
         if (_arrivalTimeData != null) {
           setState(() {
             _arrivalTimeData = {
@@ -996,7 +990,6 @@ class _PassengerHomeState extends State<PassengerHome> {
     final isRealTime = _enhancedETAData?.isDriverActive ?? _isDriverActive;
     final lastUpdate = _enhancedETAData?.lastUpdated ?? DateTime.now();
 
-    // Debug bilgisi ekle
     print('🔍 PassengerHome: ETA Card verileri:');
     print('   - estimatedMinutes: $estimatedMinutes');
     print('   - stopName: $stopName');

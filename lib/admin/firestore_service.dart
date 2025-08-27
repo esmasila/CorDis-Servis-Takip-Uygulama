@@ -137,7 +137,6 @@ class AdminFirestoreService {
           .orderBy('name')
           .get(const GetOptions(source: Source.serverAndCache));
 
-      // Ek güvenlik kontrolü - sadece aktif sürücüleri filtrele
       final activeDrivers = <Map<String, dynamic>>[];
       for (final doc in snapshot.docs) {
         final data = doc.data();
@@ -146,7 +145,6 @@ class AdminFirestoreService {
         final hasValidStatus =
             data['status'] != 'deleted' && data['status'] != 'inactive';
 
-        // Eğer alanlar null ise varsayılan olarak aktif kabul et
         final finalIsActive = data['isActive'] == null ? true : isActive;
         final finalIsNotDeleted =
             data['isDeleted'] == null ? true : isNotDeleted;
@@ -176,7 +174,6 @@ class AdminFirestoreService {
           .where('status', isNotEqualTo: 'deleted')
           .get();
 
-      // Ek güvenlik kontrolü - sadece aktif sürücüleri filtrele
       final activeDrivers = <Map<String, dynamic>>[];
       for (final doc in snapshot.docs) {
         final data = doc.data();
@@ -185,7 +182,6 @@ class AdminFirestoreService {
         final hasValidStatus =
             data['status'] != 'deleted' && data['status'] != 'inactive';
 
-        // Eğer alanlar null ise varsayılan olarak aktif kabul et
         final finalIsActive = data['isActive'] == null ? true : isActive;
         final finalIsNotDeleted =
             data['isDeleted'] == null ? true : isNotDeleted;
@@ -282,7 +278,6 @@ class AdminFirestoreService {
           .where((doc) => doc.data()['role'] == 'Şoför')
           .length;
 
-      // Sadece aktif sürücüleri say
       final activeDrivers = driversSnapshot.docs.where((doc) {
         final data = doc.data();
         final isActive = data['isActive'] == true;
@@ -290,7 +285,6 @@ class AdminFirestoreService {
         final hasValidStatus =
             data['status'] != 'deleted' && data['status'] != 'inactive';
 
-        // Eğer alanlar null ise varsayılan olarak aktif kabul et
         final finalIsActive = data['isActive'] == null ? true : isActive;
         final finalIsNotDeleted =
             data['isDeleted'] == null ? true : isNotDeleted;
@@ -344,7 +338,6 @@ class AdminFirestoreService {
   static Future<Map<String, dynamic>?> getDriverLocation(
       String driverId) async {
     try {
-      // Önce sürücünün aktif olup olmadığını kontrol et
       final driverDoc =
           await _firestore.collection('drivers').doc(driverId).get();
       if (!driverDoc.exists) {
@@ -357,7 +350,6 @@ class AdminFirestoreService {
       final hasValidStatus = driverData['status'] != 'deleted' &&
           driverData['status'] != 'inactive';
 
-      // Eğer sürücü pasif veya silinmişse konum bilgisini getirme
       if (!isActive || !isNotDeleted || !hasValidStatus) {
         return null;
       }

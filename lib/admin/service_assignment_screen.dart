@@ -31,7 +31,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
         _isLoading = true;
       });
 
-      // Bölgeleri yükle
       final regionsSnapshot = await _regions.orderBy('name').get();
       if (regionsSnapshot.docs.isNotEmpty) {
         setState(() {
@@ -68,11 +67,9 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
   }
 
   void _showSnackBarSafe(String message, {Color? backgroundColor}) {
-    // SnackBar'ı güvenli bir şekilde göster
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         try {
-          // Global ScaffoldMessenger kullan
           final messenger = ScaffoldMessenger.of(context);
           if (messenger.mounted) {
             messenger.showSnackBar(
@@ -91,11 +88,9 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
   }
 
   void _showSnackBarGlobal(String message, {Color? backgroundColor}) {
-    // Global SnackBar gösterme - BuildContext kullanmaz
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         try {
-          // Global ScaffoldMessenger kullan
           final messenger = ScaffoldMessenger.of(context);
           if (messenger.mounted) {
             messenger.showSnackBar(
@@ -114,11 +109,9 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
   }
 
   void _showSnackBarFinal(String message, {Color? backgroundColor}) {
-    // Final SnackBar gösterme - hiçbir BuildContext kullanmaz
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         try {
-          // Global ScaffoldMessenger kullan
           final messenger = ScaffoldMessenger.of(context);
           if (messenger.mounted) {
             messenger.showSnackBar(
@@ -137,11 +130,9 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
   }
 
   void _showSnackBarPerfect(String message, {Color? backgroundColor}) {
-    // Perfect SnackBar gösterme - hiçbir BuildContext kullanmaz
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         try {
-          // Global ScaffoldMessenger kullan
           final messenger = ScaffoldMessenger.of(context);
           if (messenger.mounted) {
             messenger.showSnackBar(
@@ -160,11 +151,9 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
   }
 
   void _showSnackBarUltimate(String message, {Color? backgroundColor}) {
-    // Ultimate SnackBar gösterme - hiçbir BuildContext kullanmaz
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         try {
-          // Global ScaffoldMessenger kullan
           final messenger = ScaffoldMessenger.of(context);
           if (messenger.mounted) {
             messenger.showSnackBar(
@@ -221,13 +210,11 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
           .orderBy('createdAt', descending: false)
           .get();
 
-      // Sadece gerçekten aktif ve silinmemiş durakları filtrele
       final activeStops = <Map<String, dynamic>>[];
-      
+
       for (final doc in querySnapshot.docs) {
         final data = doc.data();
-        
-        // Sadece aktif, silinmemiş ve ana yol olmayan durakları al - daha sıkı kontrol
+
         if (data['isActive'] == true &&
             data['isDeleted'] != true &&
             data['deletedAt'] == null &&
@@ -236,15 +223,17 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
             data['deleted'] != true &&
             data['isArchived'] != true &&
             data['archived'] != true &&
-            data['isMainRoad'] != true) { // Ana yol duraklarını hariç tut
+            data['isMainRoad'] != true) {
           data['id'] = doc.id;
           activeStops.add(data);
         } else {
-          print('❌ Durak filtrelendi: ${data['name']} - isActive: ${data['isActive']}, isDeleted: ${data['isDeleted']}, deletedAt: ${data['deletedAt']}, status: ${data['status']}, isMainRoad: ${data['isMainRoad']}');
+          print(
+              '❌ Durak filtrelendi: ${data['name']} - isActive: ${data['isActive']}, isDeleted: ${data['isDeleted']}, deletedAt: ${data['deletedAt']}, status: ${data['status']}, isMainRoad: ${data['isMainRoad']}');
         }
       }
 
-      print('📊 Bölge $regionId için toplam ${activeStops.length} aktif durak bulundu');
+      print(
+          '📊 Bölge $regionId için toplam ${activeStops.length} aktif durak bulundu');
       return activeStops;
     } catch (e) {
       print('Durak getirme hatası: $e');
@@ -254,7 +243,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
 
   Future<List<Map<String, dynamic>>> _getActiveServices() async {
     try {
-      // Önce aktif şoförleri al
       final driverSnapshot = await _drivers
           .where('status', isEqualTo: 'active')
           .where('isActive', isEqualTo: true)
@@ -266,7 +254,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
         return <Map<String, dynamic>>[];
       }
 
-      // Sadece aktif şoförlerin servislerini getir
       Query query = _services.where('driverId', whereIn: activeDriverIds);
 
       if (_selectedRegionId != null) {
@@ -276,13 +263,11 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
       final serviceSnapshot =
           await query.orderBy('startTime', descending: true).get();
 
-      // Sadece aktif sürücülerin servislerini filtrele
       final activeServices = <Map<String, dynamic>>[];
       for (final doc in serviceSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         final driverId = data['driverId'] as String?;
 
-        // Sürücünün hala aktif olup olmadığını kontrol et
         if (driverId != null && activeDriverIds.contains(driverId)) {
           data['id'] = doc.id;
           activeServices.add(data);
@@ -296,14 +281,12 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
     }
   }
 
-  // Silinen sürücülere ait servisleri temizle
   Future<void> _cleanupDeletedDriverServices() async {
     try {
       setState(() {
         _isLoading = true;
       });
 
-      // Sadece aktif sürücüleri al
       final activeDrivers = await _drivers
           .where('status', isEqualTo: 'active')
           .where('isActive', isEqualTo: true)
@@ -315,10 +298,8 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
         return;
       }
 
-      // Tüm servisleri al ve filtrele
       final allServices = await _services.get();
 
-      // Silinen sürücülere ait servisleri bul ve sil
       int deletedCount = 0;
       for (final serviceDoc in allServices.docs) {
         final serviceData = serviceDoc.data() as Map<String, dynamic>;
@@ -399,7 +380,7 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
 
                       if (confirmed == true) {
                         await _cleanupDeletedDriverServices();
-                        setState(() {}); // UI'ı yenile
+                        setState(() {});
                       }
                     },
             ),
@@ -568,7 +549,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
                       final regionName = snapshot.data![0];
                       final driverName = snapshot.data![1];
 
-                      // Sürücü durumuna göre renk belirle
                       Color driverColor = Colors.black;
                       if (driverName.contains('Silinmiş') ||
                           driverName.contains('Pasif')) {
@@ -703,7 +683,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
 
               return Column(
                 children: [
-                  // Aktif şoförler
                   Container(
                     margin:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -789,7 +768,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
                     ),
                   ),
 
-                  // Durak sırası
                   Container(
                     margin:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1000,7 +978,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
                       );
                     }
 
-                    // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
                     final activeDrivers = snapshot.data!.docs.where((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       return data['isActive'] == true &&
@@ -1101,7 +1078,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
                   Navigator.of(dialogCtx).pop();
                 }
 
-                // UI'ı yenile
                 if (mounted) {
                   setState(() {});
                 }

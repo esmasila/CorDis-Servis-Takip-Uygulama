@@ -30,7 +30,7 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
   int _completedServices = 0;
 
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(38.7205, 35.4826), // Kayseri koordinatları
+    target: LatLng(38.7205, 35.4826),
     zoom: 10,
   );
 
@@ -140,19 +140,14 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
     print('📊 Bölge verileri yükleniyor: $regionId');
 
     try {
-      // 1. Durakları yükle
       await _loadStops(regionId);
 
-      // 2. Şoförleri yükle
       await _loadDrivers(regionId);
 
-      // 3. Yolcuları yükle
       await _loadPassengers(regionId);
 
-      // 4. İstatistikleri yükle
       await _loadStatistics(regionId);
 
-      // 5. Haritayı odakla
       _centerMapOnMarkers();
     } catch (e) {
       print('❌ Bölge veri yükleme hatası: $e');
@@ -163,7 +158,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
     try {
       print('🚏 Duraklar yükleniyor...');
 
-      // Önce enhanced_stops koleksiyonundan dene
       var stopsSnapshot = await FirebaseFirestore.instance
           .collection('enhanced_stops')
           .where('regionId', isEqualTo: regionId)
@@ -172,7 +166,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
 
       print('📊 Enhanced stops: ${stopsSnapshot.docs.length} durak bulundu');
 
-      // Eğer enhanced_stops'da durak yoksa, stops koleksiyonundan dene
       if (stopsSnapshot.docs.isEmpty) {
         stopsSnapshot = await FirebaseFirestore.instance
             .collection('stops')
@@ -187,7 +180,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
       for (final doc in stopsSnapshot.docs) {
         final data = doc.data();
 
-        // Durak durumunu kontrol et - silinen ve ana yol duraklarını filtrele
         final isDeleted = data['isDeleted'] == true ||
             data['deletedAt'] != null ||
             data['status'] == 'deleted' ||
@@ -195,19 +187,18 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
             data['deleted'] == true ||
             data['isArchived'] == true ||
             data['archived'] == true;
-            
-        // Ana yol duraklarını filtrele
-        final isMainRoad = data['isMainRoad'] == true || 
-                          data['mainRoad'] == true ||
-                          data['type'] == 'main_road' ||
-                          data['category'] == 'main_road';
+
+        final isMainRoad = data['isMainRoad'] == true ||
+            data['mainRoad'] == true ||
+            data['type'] == 'main_road' ||
+            data['category'] == 'main_road';
 
         if (isDeleted || isMainRoad) {
-          print('❌ Durak filtrelendi: ${data['name'] ?? 'İsimsiz'} - Silinmiş: $isDeleted, Ana Yol: $isMainRoad');
+          print(
+              '❌ Durak filtrelendi: ${data['name'] ?? 'İsimsiz'} - Silinmiş: $isDeleted, Ana Yol: $isMainRoad');
           continue;
         }
 
-        // Koordinatları al - hem lat/lng hem de latitude/longitude alanlarını kontrol et
         double? lat = data['lat'] as double? ??
             data['latitude'] as double? ??
             (data['lat'] as num?)?.toDouble() ??
@@ -239,7 +230,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
         }
       }
 
-      // Mevcut işaretleyicileri güncelle
       final currentMarkers =
           _markers.where((m) => !m.markerId.value.startsWith('stop_')).toSet();
 
@@ -247,7 +237,8 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
         _markers = {...currentMarkers, ...stopMarkers};
       });
 
-      print('✅ ${stopMarkers.length} durak işaretleyicisi eklendi (filtrelenmiş)');
+      print(
+          '✅ ${stopMarkers.length} durak işaretleyicisi eklendi (filtrelenmiş)');
     } catch (e) {
       print('❌ Durak yükleme hatası: $e');
     }
@@ -268,7 +259,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
       for (final doc in driversSnapshot.docs) {
         final data = doc.data();
 
-        // Şoför konumunu al
         double? lat = data['currentLat'] as double? ??
             data['lat'] as double? ??
             data['latitude'] as double? ??
@@ -307,7 +297,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
         }
       }
 
-      // Mevcut işaretleyicileri güncelle
       final currentMarkers = _markers
           .where((m) => !m.markerId.value.startsWith('driver_'))
           .toSet();
@@ -327,7 +316,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
     try {
       print('👥 Yolcular yükleniyor...');
 
-      // Bu bölgedeki tüm yolcuları al
       final passengersSnapshot = await FirebaseFirestore.instance
           .collection('passengers')
           .where('regionId', isEqualTo: regionId)
@@ -339,7 +327,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
       int totalActivePassengers = 0;
       final Set<Marker> passengerMarkers = {};
 
-      // Bölge merkez koordinatlarını al
       final regionDoc = await FirebaseFirestore.instance
           .collection('regions')
           .doc(regionId)
@@ -361,17 +348,16 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
             (regionData['lng'] as num?)?.toDouble();
       }
 
-      // Eğer bölge koordinatları yoksa, varsayılan koordinatlar kullan
       if (regionLat == null || regionLng == null) {
-        regionLat = 38.712769008375865; // Varsayılan lat
-        regionLng = 35.34330625087023;  // Varsayılan lng
-        print('⚠️ Bölge koordinatları bulunamadı, varsayılan koordinatlar kullanılıyor');
+        regionLat = 38.712769008375865;
+        regionLng = 35.34330625087023;
+        print(
+            '⚠️ Bölge koordinatları bulunamadı, varsayılan koordinatlar kullanılıyor');
       }
 
       for (final passengerDoc in passengersSnapshot.docs) {
         final data = passengerDoc.data();
 
-        // Sadece silinmemiş yolcuları göster
         final isDeleted = data['isDeleted'] == true ||
             data['deletedAt'] != null ||
             data['status'] == 'deleted' ||
@@ -384,13 +370,11 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
           totalActivePassengers++;
           print('✅ Aktif yolcu: ${data['name'] ?? 'İsimsiz'}');
 
-          // Yolcunun durak ID'sini al - farklı alan adlarını kontrol et
-          final stopId = data['stopId'] as String? ?? 
-                        data['stop_id'] as String? ?? 
-                        data['enhancedStopId'] as String? ??
-                        data['stopId'] as String?;
+          final stopId = data['stopId'] as String? ??
+              data['stop_id'] as String? ??
+              data['enhancedStopId'] as String? ??
+              data['stopId'] as String?;
 
-          // Eğer yolcunun durak ID'si varsa, o durağın koordinatlarını kullan
           if (stopId != null) {
             final stopDoc = await FirebaseFirestore.instance
                 .collection('enhanced_stops')
@@ -410,7 +394,8 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
                   (stopData['longitude'] as num?)?.toDouble();
 
               final name = data['name'] as String? ?? 'Yolcu';
-              final stopName = stopData['name'] as String? ?? 'Durak bilgisi yok';
+              final stopName =
+                  stopData['name'] as String? ?? 'Durak bilgisi yok';
               final isActive = data['isActive'] as bool? ?? false;
 
               if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
@@ -428,18 +413,17 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
                     ),
                   ),
                 );
-                print('✅ Yolcu işaretleyicisi eklendi: $name - Durak: $stopName - Koordinatlar: ($lat, $lng)');
+                print(
+                    '✅ Yolcu işaretleyicisi eklendi: $name - Durak: $stopName - Koordinatlar: ($lat, $lng)');
               }
             }
           } else {
-            // Eğer yolcunun durak ID'si yoksa, bölge merkezinde göster
             print('⚠️ Yolcunun durak ID\'si yok: ${data['name'] ?? 'İsimsiz'}');
-            
+
             final name = data['name'] as String? ?? 'Yolcu';
             final isActive = data['isActive'] as bool? ?? false;
 
-            // Her yolcu için bölge merkezinde farklı konum (çakışmaması için)
-            final offset = totalActivePassengers * 0.001; // Küçük offset
+            final offset = totalActivePassengers * 0.001;
             final passengerLat = regionLat! + offset;
             final passengerLng = regionLng! + offset;
 
@@ -452,18 +436,19 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
                     : BitmapDescriptor.hueOrange),
                 infoWindow: InfoWindow(
                   title: '👤 $name',
-                  snippet: 'Bölge Merkezi\nDurum: ${isActive ? "Aktif" : "Pasif"}',
+                  snippet:
+                      'Bölge Merkezi\nDurum: ${isActive ? "Aktif" : "Pasif"}',
                 ),
               ),
             );
-            print('✅ Yolcu bölge merkezinde gösterildi: $name - Koordinatlar: ($passengerLat, $passengerLng)');
+            print(
+                '✅ Yolcu bölge merkezinde gösterildi: $name - Koordinatlar: ($passengerLat, $passengerLng)');
           }
         } else {
           print('❌ Yolcu silinmiş: ${data['name'] ?? 'İsimsiz'}');
         }
       }
 
-      // Mevcut işaretleyicileri güncelle
       final currentMarkers = _markers
           .where((m) => !m.markerId.value.startsWith('passenger_'))
           .toSet();
@@ -484,20 +469,17 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
     try {
       print('📊 İstatistikler yükleniyor...');
 
-      // Toplam araç sayısı
       final totalDriversSnapshot = await FirebaseFirestore.instance
           .collection('drivers')
           .where('regionId', isEqualTo: regionId)
           .get();
 
-      // Tamamlanan servis sayısı
       final servicesSnapshot = await FirebaseFirestore.instance
           .collection('service_logs')
           .where('regionId', isEqualTo: regionId)
           .where('status', isEqualTo: 'completed')
           .get();
 
-      // Olay sayısı
       final incidentsSnapshot = await FirebaseFirestore.instance
           .collection('incidents')
           .where('regionId', isEqualTo: regionId)
@@ -525,7 +507,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
     try {
       print('🎯 Harita işaretleyicilere odaklanıyor...');
 
-      // Tüm işaretleyicileri kapsayan sınırları hesapla
       double minLat = double.infinity;
       double maxLat = -double.infinity;
       double minLng = double.infinity;
@@ -538,7 +519,6 @@ class _RegionLiveTrackingScreenState extends State<RegionLiveTrackingScreen> {
         maxLng = math.max(maxLng, marker.position.longitude);
       }
 
-      // Haritayı işaretleyicilere odakla
       final bounds = LatLngBounds(
         southwest: LatLng(minLat, minLng),
         northeast: LatLng(maxLat, maxLng),

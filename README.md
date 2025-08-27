@@ -181,5 +181,3 @@ lib/
 - [ ] **v2.3**: IoT cihaz entegrasyonu
 - [ ] **v2.4**: Blockchain tabanlı güvenlik
 
-
-

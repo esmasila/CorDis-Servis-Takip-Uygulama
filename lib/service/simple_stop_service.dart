@@ -4,8 +4,7 @@ import 'package:geocoding/geocoding.dart';
 import 'geocoding_service.dart';
 
 class SimpleStopService {
-  static const double _proximityThreshold = 100.0; // Orijinal değer: 100 metre
-  
+  static const double _proximityThreshold = 100.0;
   static Future<void> createStopFromAddress({
     required String passengerId,
     required String passengerName,
@@ -24,7 +23,6 @@ class SimpleStopService {
         return;
       }
 
-      // Önce yakın konumda durak var mı kontrol et
       final nearbyStop = await _findNearbyStop(
         coordinates['lat']!,
         coordinates['lng']!,
@@ -35,7 +33,6 @@ class SimpleStopService {
         print(
             '[SimpleStopService] Yakın durak bulundu: ${nearbyStop['name']} (${nearbyStop['distance']?.toStringAsFixed(1)}m)');
 
-        // Yolcu zaten bu durakta mı kontrol et
         final existingPassengerIds =
             List<String>.from(nearbyStop['passengerIds'] ?? []);
         if (!existingPassengerIds.contains(passengerId)) {
@@ -52,7 +49,6 @@ class SimpleStopService {
               '[SimpleStopService] ℹ️ Yolcu zaten bu durakta: ${nearbyStop['name']}');
         }
       } else {
-        // Yakın durak yoksa, yolcunun mevcut durağını kontrol et
         final existingPassengerStop =
             await _findExistingPassengerStop(passengerId, regionId);
 
@@ -60,7 +56,6 @@ class SimpleStopService {
           print(
               '[SimpleStopService] Yolcunun mevcut durağı bulundu, güncelleniyor: ${existingPassengerStop['name']}');
 
-          // Mevcut durağı yeni konuma taşı
           await _updateStopLocation(
             existingPassengerStop['id'],
             coordinates['lat']!,
@@ -71,7 +66,6 @@ class SimpleStopService {
           print(
               '[SimpleStopService] ✅ Mevcut durak güncellendi: ${existingPassengerStop['name']}');
         } else {
-          // Hiç durak yoksa yeni oluştur
           await _createNewStop(
             passengerId: passengerId,
             passengerName: passengerName,
@@ -144,7 +138,6 @@ class SimpleStopService {
             stopLng,
           );
 
-          // En yakın durağı bul
           if (closestDistance == null || distance < closestDistance) {
             closestDistance = distance;
             closestStop = {
@@ -157,7 +150,6 @@ class SimpleStopService {
         }
       }
 
-      // Eğer en yakın durak 100 metre içindeyse, onu kullan
       if (closestStop != null &&
           closestDistance != null &&
           closestDistance <= _proximityThreshold) {
@@ -212,7 +204,7 @@ class SimpleStopService {
     try {
       final stopRef =
           FirebaseFirestore.instance.collection('enhanced_stops').doc(stopId);
-      
+
       await stopRef.update({
         'passengerIds': FieldValue.arrayUnion([passengerId]),
         'passengerNames': FieldValue.arrayUnion([passengerName]),
@@ -235,7 +227,7 @@ class SimpleStopService {
     try {
       final stopRef =
           FirebaseFirestore.instance.collection('enhanced_stops').doc(stopId);
-      
+
       await stopRef.update({
         'latitude': newLatitude,
         'longitude': newLongitude,
@@ -300,18 +292,19 @@ class SimpleStopService {
         final stopDoc = stopSnapshot.docs.first;
         final stopData = stopDoc.data();
         final passengerIds = List<String>.from(stopData['passengerIds'] ?? []);
-        final passengerNames = List<String>.from(stopData['passengerNames'] ?? []);
+        final passengerNames =
+            List<String>.from(stopData['passengerNames'] ?? []);
 
-        // Yolcuyu listeden çıkar
         passengerIds.remove(passengerId);
-        final passengerIndex = passengerNames.indexWhere((name) => 
-            name == stopData['passengerNames']?.firstWhere((n) => n == passengerId, orElse: () => ''));
+        final passengerIndex = passengerNames.indexWhere((name) =>
+            name ==
+            stopData['passengerNames']
+                ?.firstWhere((n) => n == passengerId, orElse: () => ''));
         if (passengerIndex != -1) {
           passengerNames.removeAt(passengerIndex);
         }
 
         if (passengerIds.isEmpty) {
-          // Eğer durakta hiç yolcu kalmadıysa durağı deaktif et
           await stopDoc.reference.update({
             'isActive': false,
             'passengerIds': [],
@@ -319,9 +312,9 @@ class SimpleStopService {
             'passengerCount': 0,
             'updatedAt': FieldValue.serverTimestamp(),
           });
-          print('[SimpleStopService] ✅ Durak deaktif edildi (yolcu kalmadı): ${stopDoc.id}');
+          print(
+              '[SimpleStopService] ✅ Durak deaktif edildi (yolcu kalmadı): ${stopDoc.id}');
         } else {
-          // Yolcu sayısını güncelle
           await stopDoc.reference.update({
             'passengerIds': passengerIds,
             'passengerNames': passengerNames,
@@ -336,7 +329,8 @@ class SimpleStopService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getStopsForRegion(String regionId) async {
+  static Future<List<Map<String, dynamic>>> getStopsForRegion(
+      String regionId) async {
     try {
       final stopsSnapshot = await FirebaseFirestore.instance
           .collection('enhanced_stops')
@@ -345,7 +339,7 @@ class SimpleStopService {
           .where('source', isEqualTo: 'map_selection')
           .orderBy('createdAt', descending: true)
           .get();
-      
+
       return stopsSnapshot.docs.map((doc) {
         final data = doc.data();
         return {
@@ -359,31 +353,32 @@ class SimpleStopService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getStopsForDriver(String driverId) async {
+  static Future<List<Map<String, dynamic>>> getStopsForDriver(
+      String driverId) async {
     try {
       print('🔍 Şoför durakları getiriliyor. Şoför ID: $driverId');
-      
+
       final driverDoc = await FirebaseFirestore.instance
           .collection('drivers')
           .doc(driverId)
           .get();
-      
+
       if (!driverDoc.exists) {
         print('❌ Şoför bulunamadı: $driverId');
         return [];
       }
-      
+
       final driverData = driverDoc.data()!;
       final regionId = driverData['regionId'];
       final vehiclePlate = driverData['vehiclePlate'] ?? driverData['plate'];
-      
+
       print('📍 Şoför bilgileri - Bölge: $regionId, Plaka: $vehiclePlate');
-      
+
       if (regionId == null) {
         print('❌ Şoförün bölgesi tanımlı değil: $driverId');
         return [];
       }
-      
+
       final stopsSnapshot = await FirebaseFirestore.instance
           .collection('enhanced_stops')
           .where('regionId', isEqualTo: regionId)
@@ -391,18 +386,19 @@ class SimpleStopService {
           .where('source', isEqualTo: 'map_selection')
           .orderBy('createdAt', descending: true)
           .get();
-      
+
       final List<Map<String, dynamic>> driverStops = [];
-      
+
       for (final doc in stopsSnapshot.docs) {
         final stopData = doc.data();
         final passengerIds = List<String>.from(stopData['passengerIds'] ?? []);
-        
-        print('🔍 Durak kontrol ediliyor: ${doc.id}, Yolcu sayısı: ${passengerIds.length}');
-        
+
+        print(
+            '🔍 Durak kontrol ediliyor: ${doc.id}, Yolcu sayısı: ${passengerIds.length}');
+
         final List<String> assignedPassengerIds = [];
         final List<String> assignedPassengerNames = [];
-        
+
         for (int i = 0; i < passengerIds.length; i++) {
           final passengerId = passengerIds[i];
           try {
@@ -410,30 +406,34 @@ class SimpleStopService {
                 .collection('passengers')
                 .doc(passengerId)
                 .get();
-            
+
             if (passengerDoc.exists) {
               final passengerData = passengerDoc.data()!;
               final passengerDriverId = passengerData['driverId'];
               final passengerVehiclePlate = passengerData['vehiclePlate'];
-              
-              print('👤 Yolcu kontrol: $passengerId, Atanmış şoför: $passengerDriverId, Plaka: $passengerVehiclePlate');
-              
+
+              print(
+                  '👤 Yolcu kontrol: $passengerId, Atanmış şoför: $passengerDriverId, Plaka: $passengerVehiclePlate');
+
               bool isAssigned = false;
               if (passengerDriverId == driverId) {
                 isAssigned = true;
                 print('✅ Yolcu şoför ID ile eşleşti');
-              } else if (vehiclePlate != null && passengerVehiclePlate == vehiclePlate) {
+              } else if (vehiclePlate != null &&
+                  passengerVehiclePlate == vehiclePlate) {
                 isAssigned = true;
                 print('✅ Yolcu plaka ile eşleşti');
               }
-              
+
               if (isAssigned) {
                 assignedPassengerIds.add(passengerId);
-                final passengerNames = List<String>.from(stopData['passengerNames'] ?? []);
+                final passengerNames =
+                    List<String>.from(stopData['passengerNames'] ?? []);
                 if (i < passengerNames.length) {
                   assignedPassengerNames.add(passengerNames[i]);
                 } else {
-                  assignedPassengerNames.add(passengerData['name'] ?? 'İsimsiz');
+                  assignedPassengerNames
+                      .add(passengerData['name'] ?? 'İsimsiz');
                 }
               }
             } else {
@@ -443,7 +443,7 @@ class SimpleStopService {
             print('❌ Yolcu kontrol hatası ($passengerId): $e');
           }
         }
-        
+
         if (assignedPassengerIds.isNotEmpty) {
           final driverStop = {
             'id': doc.id,
@@ -453,15 +453,15 @@ class SimpleStopService {
             'assignedPassengerCount': assignedPassengerIds.length,
           };
           driverStops.add(driverStop);
-          print('✅ Durak eklendi: ${doc.id}, Atanmış yolcu sayısı: ${assignedPassengerIds.length}');
+          print(
+              '✅ Durak eklendi: ${doc.id}, Atanmış yolcu sayısı: ${assignedPassengerIds.length}');
         } else {
           print('⚠️ Durakta şoföre atanmış yolcu yok: ${doc.id}');
         }
       }
-      
+
       print('📊 Şoför için toplam durak sayısı: ${driverStops.length}');
       return driverStops;
-      
     } catch (e) {
       print('❌ Şoför durakları getirme hatası: $e');
       return [];

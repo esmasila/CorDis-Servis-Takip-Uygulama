@@ -202,14 +202,12 @@ class _RouteManagementScreenState extends State<RouteManagementScreen>
                           return const CircularProgressIndicator();
                         }
 
-                        // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
                         final activeDrivers = snapshot.data!.docs.where((doc) {
                           final data = doc.data() as Map<String, dynamic>;
                           final isActive = data['isActive'] == true;
                           final isNotDeleted = data['isDeleted'] != true;
                           final hasValidStatus = data['status'] == 'active';
 
-                          // Eğer alanlar null ise varsayılan olarak aktif kabul et
                           final finalIsActive =
                               data['isActive'] == null ? true : isActive;
                           final finalIsNotDeleted =
@@ -832,14 +830,12 @@ class _RouteManagementScreenState extends State<RouteManagementScreen>
                   return const CircularProgressIndicator();
                 }
 
-                // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
                 final activeDrivers = snapshot.data!.docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final isActive = data['isActive'] == true;
                   final isNotDeleted = data['isDeleted'] != true;
                   final hasValidStatus = data['status'] == 'active';
 
-                  // Eğer alanlar null ise varsayılan olarak aktif kabul et
                   final finalIsActive =
                       data['isActive'] == null ? true : isActive;
                   final finalIsNotDeleted =
@@ -1116,14 +1112,12 @@ class _RouteManagementScreenState extends State<RouteManagementScreen>
                         return const CircularProgressIndicator();
                       }
 
-                      // Ek güvenlik kontrolü - sadece gerçekten aktif olan sürücüleri göster
                       final activeDrivers = snapshot.data!.docs.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         final isActive = data['isActive'] == true;
                         final isNotDeleted = data['isDeleted'] != true;
                         final hasValidStatus = data['status'] == 'active';
 
-                        // Eğer alanlar null ise varsayılan olarak aktif kabul et
                         final finalIsActive =
                             data['isActive'] == null ? true : isActive;
                         final finalIsNotDeleted =

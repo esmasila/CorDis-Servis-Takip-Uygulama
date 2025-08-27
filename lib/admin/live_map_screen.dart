@@ -66,7 +66,6 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
   void initState() {
     super.initState();
     _initializeEnhancedMap();
-    // Mevcut konuma git
     _getCurrentLocationAndCenter();
   }
 
@@ -115,14 +114,11 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
         final data = doc.data();
         allServices[doc.id] = data;
 
-        // Debug: Her servisin durumunu yazdır
         print(
             '🔍 Servis ${doc.id}: isActive=${data['isActive']}, name=${data['name']}');
 
-        // Daha esnek filtreleme yap
         bool isActive = data['isActive'] == true;
 
-        // Eğer isActive yoksa, varsayılan olarak aktif kabul et
         if (data['isActive'] == null) {
           isActive = true;
         }
@@ -159,11 +155,9 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
         final data = doc.data();
         allDrivers[doc.id] = data;
 
-        // Debug: Her şoförün durumunu yazdır
         print(
             '🔍 Şoför ${doc.id}: isActive=${data['isActive']}, isDeleted=${data['isDeleted']}, status=${data['status']}, plate=${data['vehiclePlate']}');
 
-        // Daha esnek filtreleme yap
         bool isActive = data['isActive'] == true;
         bool isNotDeleted = data['isDeleted'] != true;
         bool hasValidStatus =
@@ -171,22 +165,18 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
         bool hasPlate = data['vehiclePlate'] != null &&
             data['vehiclePlate'].toString().isNotEmpty;
 
-        // Eğer isActive yoksa, varsayılan olarak aktif kabul et
         if (data['isActive'] == null) {
           isActive = true;
         }
 
-        // Eğer isDeleted yoksa, varsayılan olarak silinmemiş kabul et
         if (data['isDeleted'] == null) {
           isNotDeleted = true;
         }
 
-        // Eğer status yoksa, varsayılan olarak geçerli kabul et
         if (data['status'] == null) {
           hasValidStatus = true;
         }
 
-        // Sadece gerçekten aktif ve geçerli sürücüleri ekle
         if (isActive && isNotDeleted && hasValidStatus && hasPlate) {
           drivers[doc.id] = data;
           print(
@@ -242,27 +232,23 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
           final lat = (data['lat'] as num?)?.toDouble() ?? 0.0;
           final lng = (data['lng'] as num?)?.toDouble() ?? 0.0;
           if (lat != 0.0 && lng != 0.0) {
-            // Şoför kontrolü yap
             final driverId = data['driverId'];
             if (driverId == null ||
                 !_drivers.containsKey(driverId.toString())) {
               print('⚠️ Şoför bulunamadı: $driverId');
-              continue; // Bu şoför bulunamadı, atla
+              continue;
             }
 
-            // Şoför durumunu kontrol et
             final driverData = _drivers[driverId.toString()];
             if (driverData == null) {
               continue;
             }
 
-            // Daha esnek durum kontrolü
             bool isActive = driverData['isActive'] == true;
             bool isNotDeleted = driverData['isDeleted'] != true;
             bool hasValidStatus = driverData['status'] != 'deleted' &&
                 driverData['status'] != 'inactive';
 
-            // Eğer alanlar yoksa varsayılan olarak geçerli kabul et
             if (driverData['isActive'] == null) isActive = true;
             if (driverData['isDeleted'] == null) isNotDeleted = true;
             if (driverData['status'] == null) hasValidStatus = true;
@@ -388,13 +374,11 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
 
     final service = _services[serviceId.toString()];
     if (service == null) {
-      // Servis bulunamadıysa, servis ID'sini göster
       print(
           '⚠️ Servis bulunamadı: $serviceId, Mevcut servisler: ${_services.keys.toList()}');
       return 'Servis ID: $serviceId';
     }
 
-    // Servis adını farklı alanlardan almayı dene
     final serviceName = service['name'] ??
         service['serviceName'] ??
         service['title'] ??
@@ -411,22 +395,18 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
 
     final driver = _drivers[driverId.toString()];
     if (driver == null) {
-      // Şoför bulunamadıysa, şoför ID'sini göster
       return 'Silinmiş Sürücü';
     }
 
-    // Sürücü durumunu kontrol et
     final isActive = driver['isActive'] == true;
     final isNotDeleted = driver['isDeleted'] != true;
     final hasValidStatus =
         driver['status'] != 'deleted' && driver['status'] != 'inactive';
 
-    // Eğer sürücü pasif veya silinmişse
     if (!isActive || !isNotDeleted || !hasValidStatus) {
       return 'Pasif Sürücü';
     }
 
-    // Şoför adını farklı alanlardan almayı dene
     final driverName = driver['name'] ??
         driver['driverName'] ??
         driver['fullName'] ??
@@ -507,7 +487,7 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
 
   LatLng _calculateClusterCenter(List<Marker> markers) {
     if (markers.isEmpty) {
-      return const LatLng(39.9334, 32.8597); // Ankara varsayılan koordinatı
+      return const LatLng(39.9334, 32.8597);
     }
 
     double totalLat = 0;
@@ -741,10 +721,8 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
   }
 
   void _showDriverDetails(String driverId, Map<String, dynamic> data) {
-    // Şoför bilgilerini _drivers koleksiyonundan al
     final driverInfo = _drivers[driverId];
 
-    // Sürücü durumunu kontrol et
     if (driverInfo == null) {
       showSnackBar(
         text: 'Sürücü bilgileri bulunamadı',
@@ -753,13 +731,11 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       return;
     }
 
-    // Sürücünün aktif olup olmadığını kontrol et
     final isActive = driverInfo['isActive'] == true;
     final isNotDeleted = driverInfo['isDeleted'] != true;
     final hasValidStatus =
         driverInfo['status'] != 'deleted' && driverInfo['status'] != 'inactive';
 
-    // Eğer sürücü pasif veya silinmişse uyarı göster
     if (!isActive || !isNotDeleted || !hasValidStatus) {
       showSnackBar(
         text: 'Bu sürücü artık aktif değil',
@@ -771,17 +747,14 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     final vehiclePlate =
         driverInfo['vehiclePlate'] ?? data['vehiclePlate'] ?? 'Belirtilmemiş';
 
-    // Servis bilgilerini _services koleksiyonundan al
     final serviceId = data['serviceId'];
     String serviceName = 'Belirtilmemiş';
     if (serviceId != null && serviceId.toString().isNotEmpty) {
       serviceName = _getServiceDisplayName(serviceId);
-      // Debug için servis bilgilerini yazdır
       print('🔍 Servis detayları - ID: $serviceId, Ad: $serviceName');
       print('🔍 Mevcut servisler: ${_services.keys.toList()}');
     }
 
-    // Bölge bilgilerini regions koleksiyonundan al
     final regionId = data['regionId'];
 
     showModalBottomSheet(
@@ -1087,7 +1060,6 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
   void _trackDriver(String driverId) {
     if (driverId.isEmpty) return;
 
-    // Sürücü durumunu kontrol et
     final driverInfo = _drivers[driverId];
     if (driverInfo == null) {
       showSnackBar(
@@ -1097,13 +1069,11 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       return;
     }
 
-    // Sürücünün aktif olup olmadığını kontrol et
     final isActive = driverInfo['isActive'] == true;
     final isNotDeleted = driverInfo['isDeleted'] != true;
     final hasValidStatus =
         driverInfo['status'] != 'deleted' && driverInfo['status'] != 'inactive';
 
-    // Eğer sürücü pasif veya silinmişse uyarı göster
     if (!isActive || !isNotDeleted || !hasValidStatus) {
       showSnackBar(
         text: 'Bu sürücü artık aktif değil',
@@ -1137,7 +1107,6 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
   void _showRouteHistory(String driverId) {
     if (driverId.isEmpty) return;
 
-    // Sürücü durumunu kontrol et
     final driverInfo = _drivers[driverId];
     if (driverInfo == null) {
       showSnackBar(
@@ -1147,13 +1116,11 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       return;
     }
 
-    // Sürücünün aktif olup olmadığını kontrol et
     final isActive = driverInfo['isActive'] == true;
     final isNotDeleted = driverInfo['isDeleted'] != true;
     final hasValidStatus =
         driverInfo['status'] != 'deleted' && driverInfo['status'] != 'inactive';
 
-    // Eğer sürücü pasif veya silinmişse uyarı göster
     if (!isActive || !isNotDeleted || !hasValidStatus) {
       showSnackBar(
         text: 'Bu sürücü artık aktif değil',
@@ -1395,7 +1362,6 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
   Widget _buildDriverFilter() {
     if (_drivers.isEmpty) return const SizedBox.shrink();
 
-    // Sadece aktif sürücüleri filtrele
     final activeDrivers = _drivers.entries.where((entry) {
       final data = entry.value;
       final isActive = data['isActive'] == true;
@@ -1403,7 +1369,6 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       final hasValidStatus =
           data['status'] != 'deleted' && data['status'] != 'inactive';
 
-      // Eğer alanlar null ise varsayılan olarak aktif kabul et
       final finalIsActive = data['isActive'] == null ? true : isActive;
       final finalIsNotDeleted = data['isDeleted'] == null ? true : isNotDeleted;
       final finalHasValidStatus =
@@ -1683,7 +1648,6 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
       }
     } catch (e) {
       print('Mevcut konum alınamadı: $e');
-      // Hata durumunda varsayılan konuma git (Ankara)
       if (_mapController != null) {
         _mapController!.animateCamera(
           CameraUpdate.newLatLngZoom(
@@ -1749,7 +1713,6 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     final stopMarkers =
         _markers.where((m) => m.markerId.value.startsWith('stop_')).length;
 
-    // Sadece aktif sürücülerin sayısını göster
     final totalRegisteredVehicles = _drivers.length;
     final activeVehicles = vehicleMarkers;
 

@@ -303,13 +303,12 @@ class AvatarMarkerService {
       final double radius = canvasSize / 2.0;
       final Offset center = Offset(radius, radius);
 
-      // Sadece emoji'yi göster, avatar arka planı yok
       final TextPainter textPainter = TextPainter(
         text: TextSpan(
           text: emoji,
           style: TextStyle(
-            fontSize: canvasSize * 0.8, // Emoji'yi daha büyük yap
-            color: Colors.black, // Emoji rengini siyah yap
+            fontSize: canvasSize * 0.8,
+            color: Colors.black,
           ),
         ),
         textDirection: TextDirection.ltr,

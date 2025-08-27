@@ -29,7 +29,6 @@ class _PermissionsManagementScreenState
           .where('status', isNotEqualTo: 'deleted')
           .get();
 
-      // Ek güvenlik kontrolü - sadece aktif sürücüleri filtrele
       final activeDrivers = <Map<String, dynamic>>[];
       for (final doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
@@ -38,7 +37,6 @@ class _PermissionsManagementScreenState
         final hasValidStatus =
             data['status'] != 'deleted' && data['status'] != 'inactive';
 
-        // Eğer alanlar null ise varsayılan olarak aktif kabul et
         final finalIsActive = data['isActive'] == null ? true : isActive;
         final finalIsNotDeleted =
             data['isDeleted'] == null ? true : isNotDeleted;

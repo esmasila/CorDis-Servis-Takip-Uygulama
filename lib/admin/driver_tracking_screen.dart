@@ -25,7 +25,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   Timer? _nearestStopTimer;
   bool _isLoading = true;
 
-  // Varsayılan konum (Kayseri)
   static const LatLng _defaultLocation = LatLng(38.7205, 35.4826);
 
   @override
@@ -53,7 +52,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
           .where('status', isNotEqualTo: 'deleted')
           .get();
 
-      // Ek güvenlik kontrolü - sadece aktif sürücüleri filtrele
       final activeDrivers = <Map<String, dynamic>>[];
       for (final doc in snapshot.docs) {
         final data = doc.data();
@@ -62,7 +60,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
         final hasValidStatus =
             data['status'] != 'deleted' && data['status'] != 'inactive';
 
-        // Eğer alanlar null ise varsayılan olarak aktif kabul et
         final finalIsActive = data['isActive'] == null ? true : isActive;
         final finalIsNotDeleted =
             data['isDeleted'] == null ? true : isNotDeleted;
@@ -70,7 +67,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
             data['status'] == null ? true : hasValidStatus;
 
         if (finalIsActive && finalIsNotDeleted && finalHasValidStatus) {
-          // Sürücünün bölge bilgisini al
           String? regionInfo = data['regionId'] ??
               data['assignedRegion'] ??
               data['region'] ??
@@ -87,7 +83,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                 final regionData = regionDoc.data()!;
                 final regionName = regionData['name'] ?? regionInfo;
                 data['regionName'] = regionName;
-                data['regionId'] = regionInfo; // Bölge ID'sini de sakla
+                data['regionId'] = regionInfo;
                 print(
                     '✅ Aktif sürücü eklendi: ${doc.id} - ${data['name'] ?? 'İsimsiz'} (Bölge: $regionName)');
               } else {
@@ -138,12 +134,10 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       print('🔍 Şoför seçildi: ${driver['name'] ?? driver['id']}');
       print('📅 Bugünün tarihi: $today');
 
-      // Şoföre ait durakları yükle
       print(
           '📍 Şoför ${driver['name']} için şoföre ait durakları yükleniyor...');
       List<Map<String, dynamic>> stops = [];
 
-      // Şoförün atandığı bölgeyi bul
       final driverDoc = await FirebaseFirestore.instance
           .collection('drivers')
           .doc(driver['id'])
@@ -158,18 +152,15 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
             driverData['bolge'];
 
         if (assignedRegion != null) {
-          // Şoförün bölgesindeki durakları getir - sadece enhanced_stops koleksiyonundan
           List<Map<String, dynamic>> regionStopsSnap = [];
 
           print('🔍 Durak arama başlıyor...');
           print('🔍 Bölge adı: $assignedRegion');
           print('🔍 Bölge ID: ${driver['regionId']}');
 
-          // Sadece enhanced_stops koleksiyonundan durak getir
           try {
             print('🔍 Enhanced stops koleksiyonundan durak arama...');
 
-            // Önce bölge dokümanını kontrol et
             final regionDoc = await FirebaseFirestore.instance
                 .collection('regions')
                 .doc(assignedRegion)
@@ -187,11 +178,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                 .where('isActive', isEqualTo: true)
                 .get();
 
-            // Bölge ID ile eşleşen durakları filtrele
             regionStopsSnap = stopsQuery.docs.where((doc) {
               final data = doc.data();
 
-              // Sadece aktif ve silinmemiş durakları al - daha sıkı kontrol
               if (data['isActive'] != true ||
                   data['isDeleted'] == true ||
                   data['deletedAt'] != null ||
@@ -205,19 +194,16 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                 return false;
               }
 
-              // Bölge bilgisini kontrol et
               final stopRegionId = data['regionId'] ??
                   data['assignedRegion'] ??
                   data['region'] ??
                   data['area'] ??
                   data['bolge'];
 
-              // Bölge ID eşleşmesi
               if (stopRegionId == assignedRegion) {
                 return true;
               }
 
-              // Bölge adı eşleşmesi (eğer bölge ID bulunamazsa)
               if (stopRegionId == null && regionName != null) {
                 final stopRegionName = data['region'] ??
                     data['regionName'] ??
@@ -239,7 +225,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
 
             print('🔍 Enhanced stops sonucu: ${regionStopsSnap.length} durak');
 
-            // Debug: Bulunan durakları listele
             for (var stop in regionStopsSnap) {
               print(
                   '📍 Durak: ${stop['name']} - Bölge: ${stop['regionId'] ?? stop['region']} - Aktif: ${stop['isActive']} - Silinmiş: ${stop['isDeleted']} - Durum: ${stop['status']}');
@@ -249,17 +234,14 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
           }
 
           if (regionStopsSnap.isNotEmpty) {
-            // Sadece aktif, silinmemiş ve ana yol olmayan durakları filtrele
             stops = regionStopsSnap.where((stop) {
               final isActive = stop['isActive'] == true;
               final isNotDeleted = stop['isDeleted'] != true;
               final notDeletedAt = stop['deletedAt'] == null;
               final hasValidStatus =
                   stop['status'] != 'deleted' && stop['status'] != 'inactive';
-              final isNotMainRoad =
-                  stop['isMainRoad'] != true; // Ana yol duraklarını hariç tut
+              final isNotMainRoad = stop['isMainRoad'] != true;
 
-              // Debug: Her durağın durumunu kontrol et
               if (!isActive ||
                   !isNotDeleted ||
                   !notDeletedAt ||
@@ -276,7 +258,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
             print(
                 '✅ Şoför ${driver['name']} bölgesinde (${driver['regionName']}) ${stops.length} aktif durak bulundu');
 
-            // Debug: Filtrelenmiş durakları listele
             for (var stop in stops) {
               print('✅ Aktif durak: ${stop['name']} - ID: ${stop['id']}');
             }
@@ -288,19 +269,16 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
         }
       }
 
-      // Durakları güncelle
       setState(() {
         _stops = stops;
         _selectedDriver = driver;
-        _trips = []; // Seferleri temizle
+        _trips = [];
       });
 
-      // Haritayı durakların konumuna taşı
       if (stops.isNotEmpty) {
         _moveMapToStops(stops);
       }
 
-      // Şoförün konumunu yükle
       print('📍 Şoför ${driver['name']} konumu yükleniyor...');
       await _loadDriverLocation(driver['id']);
     } catch (e) {
@@ -362,7 +340,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     double minDistance = double.infinity;
     Map<String, dynamic>? nearest;
     for (var stop in _stops) {
-      // Koordinat kontrolü - hem lat/lng hem de latitude/longitude alanlarını kontrol et
       double? lat, lng;
 
       if (stop['lat'] != null && stop['lng'] != null) {
@@ -434,7 +411,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   Set<Marker> _buildMarkers() {
     final markers = <Marker>{};
     for (var stop in _stops) {
-      // Koordinat kontrolü - hem lat/lng hem de latitude/longitude alanlarını kontrol et
       double? lat, lng;
 
       if (stop['lat'] != null && stop['lng'] != null) {
@@ -499,13 +475,11 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   }
 
   Widget _buildTripCard(Map<String, dynamic> trip) {
-    // Sefer adını al (eğer varsa)
     final tripName = trip['name'] ??
         trip['routeName'] ??
         trip['route'] ??
         'Sefer ${trip['id'].toString().substring(0, 8)}...';
 
-    // Gerçek zaman verilerini al
     String departureText = 'Belirtilmemiş';
     String arrivalText = 'Belirtilmemiş';
 
@@ -686,7 +660,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       );
     }
 
-    // Tüm durakları göster (koordinat kontrolü yapmadan)
     final allStops = _stops;
 
     return ListView.builder(
@@ -698,7 +671,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
         final stopAddress =
             stop['address'] ?? stop['location'] ?? 'Adres bilgisi yok';
 
-        // Koordinat bilgisini kontrol et
         bool hasCoordinates = false;
         String coordinateStatus = '';
 
@@ -791,7 +763,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     if (stops.isEmpty || _mapController == null) return;
 
     try {
-      // Tüm durakların koordinatlarını topla
       List<LatLng> stopCoordinates = [];
 
       for (var stop in stops) {
@@ -829,7 +800,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       }
 
       if (stopCoordinates.isNotEmpty) {
-        // Haritayı durakların merkezine taşı
         final bounds = _calculateBounds(stopCoordinates);
         _mapController!.animateCamera(
           CameraUpdate.newLatLngBounds(bounds, 50.0),
@@ -861,7 +831,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       if (coord.longitude > maxLng) maxLng = coord.longitude;
     }
 
-    // Biraz margin ekle
     const margin = 0.01;
     return LatLngBounds(
       southwest: LatLng(minLat - margin, minLng - margin),
@@ -873,7 +842,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     try {
       List<Map<String, dynamic>> trips = [];
 
-      // Önce bugünün seferlerini dene
       final tripsSnap = await FirebaseFirestore.instance
           .collection('routes')
           .doc(driverId)
@@ -886,7 +854,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
         trips = tripsSnap.docs.map((e) => {'id': e.id, ...e.data()}).toList();
         print('✅ Şoför bugün ${trips.length} sefer yapıyor');
       } else {
-        // Bugün sefer yoksa genel seferleri dene
         print('⚠️ Şoför bugün sefer yapmıyor, genel seferler deneniyor...');
         final generalTripsSnap = await FirebaseFirestore.instance
             .collection('routes')
@@ -904,7 +871,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
         }
       }
 
-      // Seferleri sırala (eğer departureTime varsa)
       if (trips.isNotEmpty) {
         trips.sort((a, b) {
           final timeA =
@@ -962,7 +928,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
         print('⚠️ Şoför konum dokümanı bulunamadı');
       }
 
-      // Canlı konum takibi başlat
       _locationSubscription?.cancel();
       _locationSubscription = FirebaseFirestore.instance
           .collection('driver_locations')
@@ -1009,7 +974,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
           : SingleChildScrollView(
               child: Column(
                 children: [
-                  // Şoför Seçimi
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -1094,7 +1058,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                       ],
                     ),
                   ),
-                  // Harita Kısmı
                   Container(
                     height: 300,
                     child: Container(
@@ -1114,7 +1077,6 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                             setState(() {
                               _mapController = controller;
                             });
-                            // Harita hazır olduğunda şoför konumuna git
                             if (_driverLocation != null) {
                               controller.animateCamera(
                                 CameraUpdate.newLatLngZoom(
@@ -1130,9 +1092,8 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                       ),
                     ),
                   ),
-                  // Durak Sırası Kısmı
                   Container(
-                    height: 300, // 200'den 300'e çıkarıldı
+                    height: 300,
                     child: Column(
                       children: [
                         Container(

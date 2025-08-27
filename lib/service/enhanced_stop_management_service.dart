@@ -171,8 +171,7 @@ class EnhancedStopManagementService {
           print('⚠️ Bu bölgede aktif şoför bulunamadı: $regionId');
         }
       }
-      // Önce mevcut durakları kontrol et - yakın konumda durak var mı?
-      const double proximityThreshold = 100.0; // Orijinal değer: 100 metre
+      const double proximityThreshold = 100.0;
 
       final nearbyStops = await _firestore
           .collection('enhanced_stops')
@@ -183,7 +182,6 @@ class EnhancedStopManagementService {
       DocumentReference<Map<String, dynamic>>? existingRef;
       double? minDistance;
 
-      // Yakın konumdaki durakları kontrol et
       for (final doc in nearbyStops.docs) {
         final data = doc.data();
         final stopLat = (data['latitude'] ?? data['lat']) as num?;
@@ -197,7 +195,6 @@ class EnhancedStopManagementService {
             stopLng.toDouble(),
           );
 
-          // 100 metre içindeki en yakın durak
           if (distance <= proximityThreshold) {
             if (minDistance == null || distance < minDistance) {
               minDistance = distance;
@@ -207,18 +204,15 @@ class EnhancedStopManagementService {
         }
       }
 
-      // 100 metre içindeki durak bulunduysa kullan
       if (existingRef != null) {
         print(
             '♻️ Yakın durak bulundu (${minDistance?.toStringAsFixed(1)}m), yolcu ekleniyor: ${existingRef.id}');
       }
 
-      // Eğer yakın durak bulunduysa, yolcuyu o durağa ekle
       if (existingRef != null) {
         print(
             '♻️ Yakın durak bulundu (${minDistance?.toStringAsFixed(1)}m), yolcu ekleniyor: ${existingRef.id}');
 
-        // Durağın mevcut yolcu listesini al
         final existingStopDoc = await existingRef.get();
         final existingData = existingStopDoc.data();
         if (existingData != null) {
@@ -229,9 +223,7 @@ class EnhancedStopManagementService {
           final existingAddresses =
               List<String>.from(existingData['addresses'] ?? []);
 
-          // Yolcu zaten bu durakta mı kontrol et
           if (!existingPassengerIds.contains(passengerId)) {
-            // Yolcuyu durağa ekle
             existingPassengerIds.add(passengerId);
             existingPassengerNames.add(passengerName);
             existingAddresses.add(address);
@@ -245,7 +237,6 @@ class EnhancedStopManagementService {
             });
             print('✅ Yolcu mevcut durağa eklendi: ${existingRef.id}');
           } else {
-            // Yolcu zaten bu durakta, sadece adres bilgisini güncelle
             final passengerIndex = existingPassengerIds.indexOf(passengerId);
             if (passengerIndex != -1 &&
                 passengerIndex < existingAddresses.length) {
@@ -262,7 +253,6 @@ class EnhancedStopManagementService {
         return existingRef.id;
       }
 
-      // Eğer yakın durak bulunamadıysa, yolcunun mevcut durağını kontrol et
       final existingByArray = await _firestore
           .collection('enhanced_stops')
           .where('regionId', isEqualTo: regionId)
@@ -368,13 +358,11 @@ class EnhancedStopManagementService {
           .where('passengerId', isEqualTo: passengerId)
           .where('isActive', isEqualTo: true)
           .get();
-      // Sadece aynı yolcuya ait eski durakları deaktive et, yakın durakları değil
       final List<DocumentSnapshot<Map<String, dynamic>>> toDeactivate = [
         ...byArray.docs,
         ...bySingular.docs,
       ];
 
-      // Aynı adrese sahip durakları da deaktive et (eğer farklı yolcuya aitse)
       final byAddress = await _firestore
           .collection('enhanced_stops')
           .where('regionId', isEqualTo: regionId)
@@ -386,7 +374,6 @@ class EnhancedStopManagementService {
         final data = doc.data();
         final docPassengerIds = List<String>.from(data['passengerIds'] ?? []);
 
-        // Eğer bu durak sadece bu yolcuya aitse ve başka yolcu yoksa deaktive et
         if (docPassengerIds.length == 1 &&
             docPassengerIds.contains(passengerId)) {
           toDeactivate.add(doc);
@@ -1053,14 +1040,12 @@ class EnhancedStopManagementService {
     }
   }
 
-  /// Sürücü takip ekranı için bölge bazlı aktif durakları getirir
-  /// Sadece aktif ve silinmemiş durakları döndürür
   static Future<List<Map<String, dynamic>>> getActiveStopsByRegionForTracking(
     String regionId,
   ) async {
     try {
       print('🔍 Bölge $regionId için aktif duraklar getiriliyor...');
-      
+
       final querySnapshot = await _firestore
           .collection('enhanced_stops')
           .where('regionId', isEqualTo: regionId)
@@ -1076,8 +1061,7 @@ class EnhancedStopManagementService {
       }).toList();
 
       print('✅ Bölge $regionId için ${stops.length} aktif durak bulundu');
-      
-      // Durakları sıraya göre sırala
+
       stops.sort((a, b) {
         final orderA = a['order'] ?? a['stopOrder'] ?? 0;
         final orderB = b['order'] ?? b['stopOrder'] ?? 0;
@@ -1091,35 +1075,30 @@ class EnhancedStopManagementService {
     }
   }
 
-  /// Bölge adına göre aktif durakları getirir (sürücü takip için)
-  static Future<List<Map<String, dynamic>>> getActiveStopsByRegionNameForTracking(
+  static Future<List<Map<String, dynamic>>>
+      getActiveStopsByRegionNameForTracking(
     String regionName,
   ) async {
     try {
       print('🔍 Bölge adı "$regionName" için aktif durakları getiriliyor...');
-      
-      // Önce bölge adına göre durakları bul
+
       final querySnapshot = await _firestore
           .collection('enhanced_stops')
           .where('isActive', isEqualTo: true)
           .get();
 
-      final stops = querySnapshot.docs
-          .where((doc) {
-            final data = doc.data();
-            final stopRegion = data['region'] ?? data['regionId'];
-            return stopRegion == regionName;
-          })
-          .map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id;
-            return data;
-          })
-          .toList();
+      final stops = querySnapshot.docs.where((doc) {
+        final data = doc.data();
+        final stopRegion = data['region'] ?? data['regionId'];
+        return stopRegion == regionName;
+      }).map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }).toList();
 
       print('✅ Bölge "$regionName" için ${stops.length} aktif durak bulundu');
-      
-      // Durakları sıraya göre sırala
+
       stops.sort((a, b) {
         final orderA = a['order'] ?? a['stopOrder'] ?? 0;
         final orderB = b['order'] ?? b['stopOrder'] ?? 0;

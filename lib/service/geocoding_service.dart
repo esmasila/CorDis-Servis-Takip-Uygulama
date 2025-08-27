@@ -143,7 +143,6 @@ class GeocodingService {
       
       print('[GeocodingService] Unified Route Optimization Service ile ${stops.length} durak optimize ediliyor...');
       
-      // Use unified optimization service for consistent results
       final optimizedStops = await UnifiedRouteOptimizationService.optimizeRoute(
         driverLocation: driverLocation,
         stops: stops,
@@ -151,14 +150,12 @@ class GeocodingService {
       );
       
       if (optimizedStops.isNotEmpty) {
-        // Get optimization statistics
         final stats = UnifiedRouteOptimizationService.getRouteStatistics(optimizedStops);
         print('[GeocodingService] ✅ ${optimizedStops.length} durak Unified Service ile optimize edildi');
         print('[GeocodingService] 📊 Optimizasyon: ${stats['optimizationMethod']} - ${stats['totalDistance']?.toStringAsFixed(2)} km');
         return optimizedStops;
       }
       
-      // Fallback to original method if unified service fails
       print('[GeocodingService] ⚠️ Unified service başarısız, orijinal algoritma kullanılıyor');
       final sortedStops = List<Map<String, dynamic>>.from(stops);
       sortedStops.sort((a, b) {

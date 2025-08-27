@@ -110,7 +110,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     _resolveDriverRegionAndStartStreams();
     _initializeNewServices();
 
-    // Durak tamamlama takibini başlat
     StopCompletionTracker().startTracking(
       driverId: widget.driverId,
       onStopsUpdated: () {
@@ -173,7 +172,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       print('🛑 Harita kapatılırken simülasyon durduruldu');
     }
 
-    // Durak tamamlama takibini durdur
     StopCompletionTracker().stopTracking();
 
     _stopsSubscription?.cancel();
@@ -680,9 +678,7 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
       }
       print('🔍 === TOPLAM OPTİMİZE: ${optimizedStops.length} ===');
 
-      // Cache key oluştur ve passenger panel ile paylaş
       if (_currentPosition != null) {
-        // Passenger panel ile tamamen aynı format kullan
         final cacheKey =
             'driver_${widget.driverId}_${validStops.length}_${_currentPosition!.latitude.toStringAsFixed(6)}_${_currentPosition!.longitude.toStringAsFixed(6)}';
         print('🔑 Cache key oluşturuldu: $cacheKey');
@@ -692,7 +688,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         print('🚌 Durak sayısı: ${validStops.length}');
         print('👤 Driver ID: ${widget.driverId}');
 
-        // Cache'e yaz (passenger panel okuyabilsin)
         _writeRouteToCache(
             cacheKey,
             validStops
@@ -1536,7 +1531,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         );
         _animateToNewPosition(newPosition);
 
-        // Simülasyon modunda durak tamamlama kontrolü
         _checkSimulationStopCompletion(newPosition);
 
         await _updateMarkers();
@@ -1903,7 +1897,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         print('🎯 Durağa yaklaşıldı: ${stop.address}');
         _recordStopArrivalAuto(stop);
 
-        // Durak tamamlama takibinde de işaretle
         StopCompletionTracker().markStopAsCompleted(stop.id);
 
         break;
@@ -1932,7 +1925,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         passengerNames: stop.metadata?['passengerIds']?.cast<String>() ?? [],
       );
 
-      // Durak tamamlama takibinde de işaretle
       StopCompletionTracker().markStopAsCompleted(stop.id);
 
       _recordedStops.add(stop.id);
@@ -1974,7 +1966,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     }
   }
 
-  /// Simülasyon modunda durak tamamlama kontrolü
   void _checkSimulationStopCompletion(LatLng currentPosition) {
     if (!_isSimulationMode || _optimizedRoute.isEmpty) {
       if (kDebugMode) {
@@ -2015,7 +2006,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
         print(
             '🎯 Simülasyon: Durağa yaklaşıldı: ${stop.address} (${distance.toStringAsFixed(0)}m)');
 
-        // Durak tamamlama takibinde işaretle
         StopCompletionTracker().markStopAsCompleted(stop.id);
 
         if (kDebugMode) {
@@ -2024,17 +2014,15 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
               '🔍 StopCompletionTracker durumu: ${StopCompletionTracker().completedStops}');
         }
 
-        // Otomatik durak kaydı yap
         _recordStopArrivalAuto(stop);
 
-        break; // Sadece bir durak işaretle
+        break;
       }
     }
   }
 
   Future<void> _recordStopArrival(StopModel stop) async {
     try {
-      // Durak tamamlama takibinde de işaretle
       StopCompletionTracker().markStopAsCompleted(stop.id);
 
       await EnhancedRouteService.logStopArrival(
@@ -2416,7 +2404,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
               },
             ),
           if (_optimizedRoute.isNotEmpty) const SizedBox(height: 12),
-          // Test için durak tamamlama butonu
           if (_optimizedRoute.isNotEmpty)
             _buildControlButton(
               Icons.check_circle,
@@ -2434,7 +2421,6 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
               },
             ),
           if (_optimizedRoute.isNotEmpty) const SizedBox(height: 12),
-          // Test için durak sıfırlama butonu
           if (_optimizedRoute.isNotEmpty)
             _buildControlButton(
               Icons.refresh,
@@ -3830,14 +3816,8 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     );
   }
 
-  /// Store cache key for passenger panel access
   void _storeCacheKeyForPassengerPanel(String cacheKey) {
-    // Store in a way that passenger panel can access
-    // This could be through Firebase, shared preferences, or a global service
     print('🔐 Cache key passenger panel için saklandı: $cacheKey');
-
-    // TODO: Implement proper storage mechanism for passenger panel access
-    // For now, we'll use a simple approach with the unified service
   }
 
   LatLngBounds _calculateBounds(List<LatLng> points) {
@@ -3863,10 +3843,8 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     );
   }
 
-  /// Cache'e rota yazar (passenger panel okuyabilsin)
   void _writeRouteToCache(String cacheKey, List<Map<String, dynamic>> stops) {
     try {
-      // Stops'ları waypoint formatına çevir
       final waypoints = stops
           .map((stop) => {
                 'latitude':
@@ -3879,20 +3857,22 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
               })
           .toList();
 
-      // Unified service cache'e yaz
       UnifiedRouteOptimizationService.cacheRoute(cacheKey, waypoints);
       print('💾 Rota cache\'e yazıldı: $cacheKey (${waypoints.length} durak)');
-      
-      // Cache istatistiklerini kontrol et
+
       final stats = UnifiedRouteOptimizationService.getCacheStatistics();
-      print('📊 Cache istatistikleri: ${stats['cacheSize']} rota, ${stats['timestampCount']} timestamp');
-      
-      // Cache'de yazılan rotayı doğrula
-      final cachedRoute = UnifiedRouteOptimizationService.getCachedRoute(cacheKey);
+      print(
+          '📊 Cache istatistikleri: ${stats['cacheSize']} rota, ${stats['timestampCount']} timestamp');
+
+      final cachedRoute =
+          UnifiedRouteOptimizationService.getCachedRoute(cacheKey);
       if (cachedRoute != null) {
-        print('✅ Cache doğrulaması başarılı: ${cachedRoute.length} durak bulundu');
-        print('🔍 İlk durak: ${cachedRoute.first['address']} (${cachedRoute.first['latitude']}, ${cachedRoute.first['longitude']})');
-        print('🔍 Son durak: ${cachedRoute.last['address']} (${cachedRoute.last['latitude']}, ${cachedRoute.last['longitude']})');
+        print(
+            '✅ Cache doğrulaması başarılı: ${cachedRoute.length} durak bulundu');
+        print(
+            '🔍 İlk durak: ${cachedRoute.first['address']} (${cachedRoute.first['latitude']}, ${cachedRoute.first['longitude']})');
+        print(
+            '🔍 Son durak: ${cachedRoute.last['address']} (${cachedRoute.last['latitude']}, ${cachedRoute.last['longitude']})');
       } else {
         print('❌ Cache doğrulaması başarısız: Rota bulunamadı');
       }
@@ -3901,16 +3881,16 @@ class _EnhancedMapScreenState extends State<EnhancedMapScreen> {
     }
   }
 
-  /// Debug: Cache'i temizle (test için)
   void _clearCacheForTesting() {
     try {
       final stats = UnifiedRouteOptimizationService.getCacheStatistics();
       print('🧹 Test öncesi cache istatistikleri: ${stats['cacheSize']} rota');
-      
+
       UnifiedRouteOptimizationService.clearAllCache();
-      
+
       final newStats = UnifiedRouteOptimizationService.getCacheStatistics();
-      print('🧹 Test sonrası cache istatistikleri: ${newStats['cacheSize']} rota');
+      print(
+          '🧹 Test sonrası cache istatistikleri: ${newStats['cacheSize']} rota');
       print('✅ Cache test için temizlendi');
     } catch (e) {
       print('❌ Cache temizleme hatası: $e');

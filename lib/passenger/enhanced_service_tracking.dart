@@ -97,7 +97,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
 
   @override
   void dispose() {
-    // Durak tamamlama takibini durdur
     StopCompletionTracker().stopTracking();
 
     _positionStream?.cancel();
@@ -121,31 +120,24 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
     setState(() => _isLoading = true);
 
     try {
-      // Avatar marker cache'ini temizle
       debugPrint('🧹 Avatar marker cache temizleniyor...');
       AvatarMarkerService.clearCache();
 
-      // Bölge ID'yi çözümle
       debugPrint('🔍 Bölge ID çözümleniyor...');
       await _resolveRegionId();
 
-      // Mevcut konumu al
       debugPrint('📍 Mevcut konum alınıyor...');
       Future.microtask(_getCurrentLocation);
 
-      // Servis durumu takibini başlat
       debugPrint('📡 Servis durumu takibi başlatılıyor...');
       _startServiceStatusTracking();
 
-      // Konum takibini başlat
       debugPrint('📍 Konum takibi başlatılıyor...');
       _startLocationTracking();
 
-      // Durak takibini başlat
       debugPrint('🎯 Durak takibi başlatılıyor...');
       _startStopsTracking();
 
-      // Tüm durakları yükle
       debugPrint('📋 Tüm duraklar yükleniyor...');
       Future.microtask(_loadAllStops);
 
@@ -246,7 +238,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       final String regionForStops =
           _resolvedRegionId.isNotEmpty ? _resolvedRegionId : widget.regionId;
 
-      // Önce EnhancedStopManagementService ile dene
       try {
         final advStops = await EnhancedStopManagementService.getStopsForRegion(
             regionForStops);
@@ -259,14 +250,12 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         debugPrint('Simple stops yüklendi: ${fetchedStops.length} durak');
       }
 
-      // Eğer hala az durak varsa, SimpleStopService ile de dene
       if (fetchedStops.length < 3) {
         try {
           final simpleStops =
               await SimpleStopService.getStopsForRegion(regionForStops);
           debugPrint('Ek simple stops yüklendi: ${simpleStops.length} durak');
 
-          // Tüm durakları birleştir
           final allStops = [...fetchedStops, ...simpleStops];
           fetchedStops = _dedupeStops(allStops);
           debugPrint('Birleştirilmiş toplam durak: ${fetchedStops.length}');
@@ -292,7 +281,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       stops = _dedupeStops(stops);
       debugPrint('Final durak sayısı: ${stops.length}');
 
-      // Durak detaylarını yazdır
       for (int i = 0; i < stops.length; i++) {
         final stop = stops[i];
         final address = stop['address'] ?? 'adres yok';
@@ -311,7 +299,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       debugPrint(
           '📊 Durak istatistikleri: Toplam: $_totalStops, Tamamlanan: $_completedStops, İlerleme: ${(_routeProgress * 100).toStringAsFixed(1)}%');
 
-      // Progress debug bilgisi
       for (int i = 0; i < stops.length; i++) {
         final stop = stops[i];
         final isCompleted = stop['isCompleted'] == true;
@@ -440,7 +427,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
 
     debugPrint('🎯 Durak takibi başlatılıyor - Bölge: $rid');
 
-    // Tüm aktif durakları dinle (source filtresi olmadan)
     _stopsStream = FirebaseFirestore.instance
         .collection('enhanced_stops')
         .where('regionId', isEqualTo: rid)
@@ -451,7 +437,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         debugPrint(
             '📡 Firestore durak değişikliği: ${snapshot.docs.length} durak');
 
-        // Durak detaylarını yazdır
         for (int i = 0; i < math.min(snapshot.docs.length, 5); i++) {
           final doc = snapshot.docs[i];
           final data = doc.data();
@@ -463,14 +448,13 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
               '  📍 Durak ${i + 1}: $address (${passengerCount} yolcu) - Kaynak: $source');
         }
 
-        // Durak sayısını kontrol et
         if (snapshot.docs.length < 3) {
           debugPrint(
               '⚠️ Az durak tespit edildi (${snapshot.docs.length}), durakları yeniden yükle');
           _stopsRedrawDebounce?.cancel();
           _stopsRedrawDebounce = Timer(const Duration(milliseconds: 400), () {
             if (mounted) {
-              _loadAllStops(); // Tüm durakları yeniden yükle
+              _loadAllStops();
             }
           });
         } else {
@@ -573,7 +557,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         final Timestamp? timestamp = data['timestamp'] as Timestamp?;
 
         if (stopId != null && action == 'completed' && timestamp != null) {
-          // Son 2 saat içindeki tamamlanan durakları kabul et
           final timeDiff = DateTime.now().difference(timestamp.toDate());
           if (timeDiff.inHours <= 2) {
             newCompletedStops.add(stopId);
@@ -584,7 +567,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         }
       }
 
-      // Durak tamamlama durumlarını güncelle
       if (newCompletedStops.isNotEmpty || newCompletedStopIds.isNotEmpty) {
         debugPrint('🔄 Durak tamamlama durumları güncelleniyor...');
         debugPrint(
@@ -596,7 +578,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
           _completedStopsSet.addAll(newCompletedStops);
           _completedStopIds.addAll(newCompletedStopIds);
 
-          // Toplam tamamlanan durak sayısını güncelle
           _completedStops = _completedStopsSet.length;
           _routeProgress =
               _totalStops > 0 ? _completedStops / _totalStops : 0.0;
@@ -608,7 +589,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         debugPrint(
             '   - İlerleme: ${(_routeProgress * 100).toStringAsFixed(1)}%');
 
-        // Haritayı güncelle - avatar renklerini yeniden çiz
         debugPrint(
             '🎨 Harita güncelleniyor - avatar renkleri yeniden çiziliyor');
         await _updateMapWithAllStops();
@@ -631,7 +611,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
           stopLatLng.longitude,
         );
 
-        // Check if driver is within 50 meters of the stop and mark as completed
         if (distance <= 50 && !_completedStopsSet.contains(stop['id'])) {
           _updateProgressWhenArrivingAtStop(stop);
         }
@@ -655,7 +634,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
   void _updateProgressWhenArrivingAtStop(Map<String, dynamic> stop) {
     final String stopId = stop['id'] as String? ?? '';
     if (stopId.isNotEmpty && !_completedStopsSet.contains(stopId)) {
-      // Durak tamamlama takibinde de işaretle
       StopCompletionTracker().markStopAsCompleted(stopId);
 
       setState(() {
@@ -665,11 +643,9 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       });
       _logStopArrival(stopId);
 
-      // Avatar marker cache'ini temizle ve map'i güncelle
       AvatarMarkerService.clearCache();
       _updateMapWithAllStops();
 
-      // Show notification for completed stop
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -705,11 +681,9 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         return;
       }
 
-      // Şoför duraklarını al
       final driverStops =
           await SimpleStopService.getStopsForDriver(_activeDriverId!);
 
-      // Bölge duraklarını da al (tüm durakları göstermek için)
       final String regionForStops =
           _resolvedRegionId.isNotEmpty ? _resolvedRegionId : widget.regionId;
       List<Map<String, dynamic>> regionStops = [];
@@ -721,13 +695,10 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         regionStops = await SimpleStopService.getStopsForRegion(regionForStops);
       }
 
-      // Şoför durakları ve bölge duraklarını birleştir
       var allStops = [...driverStops, ...regionStops];
 
-      // Tekrarlanan durakları temizle
       allStops = _dedupeStops(allStops);
 
-      // Geçici olarak pasif olmayan ve koordinatı olan durakları filtrele
       var filtered = allStops
           .where((s) => (s['temporarilyInactive'] ?? false) != true)
           .where((s) => (s['latitude'] != null && s['longitude'] != null))
@@ -739,12 +710,10 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         if (mine != null) filtered.add(mine);
       } catch (_) {}
 
-      // Son tekrar tekilleştirme
       filtered = _dedupeStops(filtered);
 
       debugPrint('🔄 Şoför durakları yenilendi: ${filtered.length} durak');
 
-      // Durak detaylarını yazdır
       for (int i = 0; i < filtered.length; i++) {
         final stop = filtered[i];
         final address = stop['address'] ?? 'adres yok';
@@ -787,22 +756,18 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       final double? lng = (s['longitude'] ?? s['lng'])?.toDouble();
       final String address = (s['address'] as String?)?.trim() ?? '';
 
-      // Daha kapsamlı tekilleştirme anahtarı
       String key;
       if (id.isNotEmpty) {
         key = 'id:$id';
       } else if (pid.isNotEmpty) {
         key = 'pid:$pid';
       } else if (lat != null && lng != null) {
-        // Koordinat bazlı tekilleştirme (100m hassasiyet)
         final latKey = (lat * 1000).round() / 1000;
         final lngKey = (lng * 1000).round() / 1000;
         key = 'geo:${latKey.toStringAsFixed(3)},${lngKey.toStringAsFixed(3)}';
       } else if (address.isNotEmpty) {
-        // Adres bazlı tekilleştirme
         key = 'addr:${address.toLowerCase().hashCode}';
       } else {
-        // Son çare olarak hash
         key = 'hash:${s.hashCode}';
       }
 
@@ -829,7 +794,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
     debugPrint(
         '✅ Tekilleştirme tamamlandı: ${list.length} -> ${result.length} durak');
 
-    // Sonuç detaylarını yazdır
     for (int i = 0; i < result.length; i++) {
       final stop = result[i];
       final address = stop['address'] ?? 'adres yok';
@@ -845,7 +809,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
     _etaRecomputeTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
       if (!mounted) return;
       if (_driverLatLng == null || _myStopLatLng == null) return;
-      // Gereksiz tekrar kaldırıldı
       await _recomputeETA();
     });
   }
@@ -921,7 +884,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
           });
 
           await _updateDriverMarker(pos);
-          // Sadece debounced versiyonu çağır, çakışmayı önle
           _debouncedRouteAndEta();
         } else {
           debugPrint('⚠️ Şoför konum koordinatları geçersiz');
@@ -1009,7 +971,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
   Future<void> _updateMapWithAllStops() async {
     debugPrint('🗺️ Harita güncelleniyor - ${_allStops.length} durak');
 
-    // Avatar marker cache'ini temizle - yeni durumları yansıtmak için
     AvatarMarkerService.clearCache();
 
     final newMarkers = <Marker>{};
@@ -1050,13 +1011,11 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
             '🎯 Yolcunun durağı bulundu: ${stop['address'] ?? 'adres yok'}');
       }
 
-      // Check if stop is completed/visited - DÜZELTME: Başlangıçta tüm duraklar kırmızı olmalı
       final bool isStopCompleted = _completedStopsSet.contains(stop['id']) ||
           stop['isCompleted'] == true ||
           stop['status'] == 'completed' ||
           stop['status'] == 'visited';
 
-      // Debug: Durak durumunu yazdır
       debugPrint(
           '📍 Durak ${i + 1}: ${stop['address'] ?? 'adres yok'} - Tamamlandı: $isStopCompleted');
 
@@ -1099,13 +1058,11 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
             (List<String>.from(stop['passengerIds'] ?? [])
                 .contains(widget.passengerId));
 
-        // DÜZELTME: Avatar renk mantığı - başlangıçta kırmızı, tamamlandığında yeşil
         final bool isStopCompleted = _completedStopsSet.contains(stop['id']) ||
             stop['isCompleted'] == true ||
             stop['status'] == 'completed' ||
             stop['status'] == 'visited';
 
-        // Debug: Avatar renk durumunu yazdır
         debugPrint(
             '🎨 Avatar ${i + 1}: ${stop['address'] ?? 'adres yok'} - Renk: ${isStopCompleted ? 'Yeşil (Tamamlandı)' : 'Kırmızı (Bekliyor)'}');
 
@@ -1114,8 +1071,7 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
             profileImageUrl: (stop['profileImageUrl'] ?? '') as String?,
             stopNumber: i + 1,
             size: 60,
-            isCompleted:
-                isStopCompleted, // DÜZELTME: Renk mantığı burada belirleniyor
+            isCompleted: isStopCompleted,
           );
           if (!mounted) return;
           setState(() {
@@ -1161,7 +1117,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
     try {
       debugPrint('🎨 Şoför marker güncelleniyor...');
 
-      // Şoför marker'ı için sadece emoji göster, avatar yok
       final avatarIcon = await AvatarMarkerService.createEmojiMarker(
         emoji: '🚌',
         size: 80.0,
@@ -1261,7 +1216,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
 
         debugPrint(
             '📋 ${_allStops.length} durak şoför paneli ile uyumlu sıralanıyor...');
-        // Şoför panelindeki gibi sıralama yap
         final ordered = [..._allStops]..sort((a, b) {
             final int ai = (a['order'] ?? 0) as int;
             final int bi = (b['order'] ?? 0) as int;
@@ -1291,12 +1245,10 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         }
         debugPrint('🚀 Şoför paneli ile uyumlu rota çiziliyor...');
 
-        // Şoför panelindeki gibi optimize edilmiş rota kullan
         final origin =
             PointLatLng(_driverLatLng!.latitude, _driverLatLng!.longitude);
         debugPrint('📍 Başlangıç: ${origin.latitude}, ${origin.longitude}');
 
-        // Durakları şoför panelindeki sırayla sırala
         final optimizedStops = await _optimizeStopsForRoute(activeOrdered);
         debugPrint(
             '🎯 ${optimizedStops.length} optimize edilmiş durak ile rota çiziliyor');
@@ -1318,7 +1270,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         debugPrint(
             '🎯 Hedef: ${destination.latitude}, ${destination.longitude}');
 
-        // DÜZELTME: Tüm durak noktalarını waypoint olarak ekle
         final waypoints = <PolylineWayPoint>[];
         if (optimizedStops.length > 1) {
           debugPrint('📍 Tüm durak noktaları waypoint olarak ekleniyor...');
@@ -1334,7 +1285,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
                   '⚠️ Ara nokta ${i + 1} koordinatları geçersiz, atlandı');
               continue;
             }
-            // Tüm durak noktalarını ekle - optimize:false ile sırayı koru
             waypoints.add(PolylineWayPoint(location: '$lat,$lng'));
             debugPrint(
                 '📍 Waypoint ${i + 1}: $lat, $lng (${optimizedStops[i]['address'] ?? 'adres yok'})');
@@ -1344,7 +1294,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         }
 
         if (_isApiKeyValid) {
-          // DÜZELTME: Tüm durak noktaları dahil edilerek rota çizimi
           final polylinePoints = PolylinePoints(apiKey: kGoogleApiKey);
           final result = await polylinePoints.getRouteBetweenCoordinates(
             request: PolylineRequest(
@@ -1352,8 +1301,7 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
               destination: destination,
               mode: TravelMode.driving,
               wayPoints: waypoints,
-              optimizeWaypoints:
-                  false, // DÜZELTME: Sırayı koru, tüm noktaları dahil et
+              optimizeWaypoints: false,
             ),
           );
           if (result.points.isNotEmpty) {
@@ -1423,7 +1371,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
           return;
         }
 
-        // DÜZELTME: Gelişmiş fallback rota - tüm durak noktaları dahil
         debugPrint(
             '📍 Gelişmiş fallback rota çiziliyor - tüm durak noktaları dahil');
         final fallbackPts = <LatLng>[_driverLatLng!];
@@ -1595,7 +1542,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
 
     debugPrint('🔍 Yolcu durağı aranıyor...');
 
-    // İlk yöntem: EnhancedStopManagementService
     try {
       debugPrint('🔍 EnhancedStopManagementService ile aranıyor...');
       final mine = await EnhancedStopManagementService.getStopForPassenger(
@@ -1623,7 +1569,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       debugPrint('❌ EnhancedStopManagementService arama hatası: $e');
     }
 
-    // İkinci yöntem: Firestore sorgusu
     try {
       debugPrint('🔍 Firestore sorgusu ile aranıyor...');
       final rid =
@@ -1733,20 +1678,18 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       );
 
       final distanceKm = dMeters / 1000.0;
-      // Şoför panelindeki gibi daha gerçekçi hız kullan
       final speedKmh = _lastDriverSpeedKmh.clamp(15.0, 80.0);
 
       debugPrint('📏 Mesafe: ${distanceKm.toStringAsFixed(2)} km');
       debugPrint('🚗 Hız: ${speedKmh.toStringAsFixed(1)} km/h');
 
-      // Şoför panelindeki gibi daha detaylı trafik faktörü
       final traffic = distanceKm > 15
-          ? 1.35 // Uzun mesafe - daha fazla trafik
+          ? 1.35
           : distanceKm > 8
-              ? 1.25 // Orta mesafe
+              ? 1.25
               : distanceKm > 3
-                  ? 1.15 // Kısa mesafe
-                  : 1.08; // Çok kısa mesafe
+                  ? 1.15
+                  : 1.08;
 
       debugPrint('🚦 Trafik faktörü: $traffic');
 
@@ -1754,9 +1697,7 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       debugPrint('⏱️ Hesaplanan süre: ${minutes.toStringAsFixed(1)} dk');
 
       if (mounted) {
-        final m = minutes
-            .clamp(1, 120)
-            .round(); // Şoför paneli ile uyumlu maksimum süre
+        final m = minutes.clamp(1, 120).round();
         setState(() {
           _estimatedArrival = '$m dk';
           _etaRemainingMinutes = m;
@@ -1793,10 +1734,10 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         'mode': 'driving',
         'departure_time': 'now',
         'traffic_model': 'best_guess',
-        'avoid': 'tolls', // Şoför paneli ile uyumlu
-        'units': 'metric', // Şoför paneli ile uyumlu
-        'language': 'tr', // Şoför paneli ile uyumlu
-        'region': 'tr', // Şoför paneli ile uyumlu
+        'avoid': 'tolls',
+        'units': 'metric',
+        'language': 'tr',
+        'region': 'tr',
         'key': kGoogleApiKey,
       },
     );
@@ -1986,7 +1927,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
 
   LatLng? _extractLatLng(Map<String, dynamic> data) {
     try {
-      // Daha kapsamlı koordinat çıkarma
       final num? latN =
           (data['lat'] ?? data['latitude'] ?? data['latNum']) as num?;
       final num? lngN =
@@ -2000,13 +1940,11 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       final lat = latN.toDouble();
       final lng = lngN.toDouble();
 
-      // Geçersiz koordinatları filtrele
       if (lat.abs() < 0.0001 && lng.abs() < 0.0001) {
         debugPrint('⚠️ Geçersiz koordinat: lat=$lat, lng=$lng');
         return null;
       }
 
-      // Türkiye sınırları içinde mi kontrol et
       if (lat < 35.0 || lat > 43.0 || lng < 25.0 || lng > 45.0) {
         debugPrint('⚠️ Türkiye sınırları dışında: lat=$lat, lng=$lng');
         return null;
@@ -2022,7 +1960,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
 
   LatLng? _extractStopLatLng(Map<String, dynamic> data) {
     try {
-      // Daha kapsamlı koordinat çıkarma
       final num? latN =
           (data['latitude'] ?? data['lat'] ?? data['latNum']) as num?;
       final num? lngN =
@@ -2037,14 +1974,12 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       final lat = latN.toDouble();
       final lng = lngN.toDouble();
 
-      // Geçersiz koordinatları filtrele
       if (lat.abs() < 0.0001 && lng.abs() < 0.0001) {
         debugPrint(
             '⚠️ Geçersiz durak koordinatı: ${data['id'] ?? 'bilinmeyen'} - lat=$lat, lng=$lng');
         return null;
       }
 
-      // Türkiye sınırları içinde mi kontrol et
       if (lat < 35.0 || lat > 43.0 || lng < 25.0 || lng > 45.0) {
         debugPrint(
             '⚠️ Türkiye sınırları dışında durak: ${data['id'] ?? 'bilinmeyen'} - lat=$lat, lng=$lng');
@@ -2436,10 +2371,8 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         });
         await _updateDriverMarker(p);
 
-        // Check if driver is near any stops and mark them as completed
         _checkAndMarkStopsAsCompleted(p);
 
-        // Avatar marker cache'ini temizle - test modunda hızlı güncelleme için
         AvatarMarkerService.clearCache();
 
         _debouncedRouteAndEta();
@@ -2450,7 +2383,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         _driverStatus = _isDriverMoving ? 'Hareket Halinde' : 'Bekliyor';
       });
 
-      // Reset progress when exiting test mode
       if (mounted) {
         setState(() {
           _completedStopsSet.clear();
@@ -2515,7 +2447,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       final stopLatLng = _extractStopLatLng(stop);
       if (stopLatLng == null) continue;
 
-      // Check if driver is within 50 meters of the stop
       final distance = Geolocator.distanceBetween(
         driverPosition.latitude,
         driverPosition.longitude,
@@ -2523,7 +2454,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         stopLatLng.longitude,
       );
 
-      // If driver is within 50 meters and stop is not already completed
       if (distance <= 50 && !_completedStopsSet.contains(stop['id'])) {
         setState(() {
           _completedStopsSet.add(stop['id']);
@@ -2532,11 +2462,9 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
               _totalStops > 0 ? _completedStops / _totalStops : 0.0;
         });
 
-        // Avatar marker cache'ini temizle ve map'i güncelle
         AvatarMarkerService.clearCache();
         _updateMapWithAllStops();
 
-        // Show notification for completed stop
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2558,7 +2486,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       _routeProgress = 0.0;
     });
 
-    // Avatar marker cache'ini temizle ve map'i güncelle
     AvatarMarkerService.clearCache();
     _updateMapWithAllStops();
 
@@ -2612,8 +2539,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
     return totalDistance > 30.0;
   }
 
-  /// Şoför paneli ile tamamen uyumlu durak optimizasyonu yapar
-  /// Unified Route Optimization Service kullanarak tutarlılık sağlar
   Future<List<Map<String, dynamic>>> _optimizeStopsForRoute(
       List<Map<String, dynamic>> stops) async {
     if (stops.isEmpty) return stops;
@@ -2622,7 +2547,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       debugPrint(
           '🎯 Unified Route Optimization Service ile durak optimizasyonu başlatılıyor...');
 
-      // Eğer şoför konumu varsa, unified service kullan
       if (_driverLatLng != null && _activeDriverId != null) {
         final driverLocation = {
           'latitude': _driverLatLng!.latitude,
@@ -2641,7 +2565,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
                 })
             .toList();
 
-        // Cache key oluştur (şoför paneli ile aynı format)
         final cacheKey =
             'driver_${_activeDriverId}_${stops.length}_${_driverLatLng!.latitude.toStringAsFixed(6)}_${_driverLatLng!.longitude.toStringAsFixed(6)}';
         debugPrint('🔑 Cache key: $cacheKey');
@@ -2652,13 +2575,11 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         debugPrint('👤 Driver ID: $_activeDriverId');
         debugPrint('🚌 Durak sayısı: ${stops.length}');
 
-        // Önce cache'den kontrol et
         final cachedRoute =
             UnifiedRouteOptimizationService.getCachedRoute(cacheKey);
         debugPrint(
             '🔍 Cache kontrolü: ${cachedRoute != null ? "BULUNDU" : "BULUNAMADI"}');
 
-        // Cache istatistiklerini kontrol et
         final stats = UnifiedRouteOptimizationService.getCacheStatistics();
         debugPrint(
             '📊 Cache istatistikleri: ${stats['cacheSize']} rota, ${stats['timestampCount']} timestamp');
@@ -2667,7 +2588,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
           debugPrint(
               '✅ Cache\'den tutarlı rota alındı: ${cachedRoute.length} durak');
 
-          // Cache'den gelen rotayı orijinal stop verileriyle eşleştir
           final optimizedStops = <Map<String, dynamic>>[];
           for (final cachedStop in cachedRoute) {
             final originalStop = stops.firstWhere(
@@ -2689,7 +2609,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
           return optimizedStops;
         }
 
-        // Cache'de yoksa, getOrCreateCachedRoute kullanarak yeni rota oluştur
         debugPrint('⚠️ Cache\'de rota bulunamadı, yeni rota oluşturuluyor...');
 
         try {
@@ -2705,7 +2624,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
             debugPrint(
                 '✅ Yeni rota oluşturuldu ve cache\'lendi: ${optimizedWaypoints.length} durak');
 
-            // Waypoint'leri orijinal stop verileriyle eşleştir
             final optimizedStops = <Map<String, dynamic>>[];
             for (final waypoint in optimizedWaypoints) {
               final originalStop = stops.firstWhere(
@@ -2734,8 +2652,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
             '⚠️ Cache\'de rota bulunamadı, şoför paneli ile uyumlu sıralama yapılıyor...');
       }
 
-      // Cache'de yoksa, şoför paneli ile aynı sıralamayı kullan
-      // Şoför paneli zaten optimize etmiş olmalı, bu yüzden order'a göre sırala
       final sortedStops = List<Map<String, dynamic>>.from(stops);
       sortedStops.sort((a, b) {
         final int ai = (a['order'] ?? 0) as int;
@@ -2743,7 +2659,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         return ai.compareTo(bi);
       });
 
-      // Order yoksa, şoför konumuna göre mesafe bazlı sıralama yap
       if (sortedStops.every((s) => (s['order'] ?? 0) == 0) &&
           _driverLatLng != null) {
         debugPrint(
@@ -2774,7 +2689,6 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         });
       }
 
-      // Şoför paneli ile uyumlu maksimum waypoint sayısı
       const int maxWaypoints = 20;
       if (sortedStops.length > maxWaypoints) {
         debugPrint(
@@ -2787,7 +2701,7 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       return sortedStops;
     } catch (e) {
       debugPrint('❌ Şoför paneli ile uyumlu durak optimizasyon hatası: $e');
-      return stops; // Hata durumunda orijinal listeyi döndür
+      return stops;
     }
   }
 }

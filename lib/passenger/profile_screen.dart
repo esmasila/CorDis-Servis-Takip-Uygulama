@@ -1081,7 +1081,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ]);
         }
 
-        // Yeni adres için otomatik durak işlemi
         try {
           print('🔄 Yeni adres için otomatik durak işlemi başlatılıyor...');
           await SimpleStopService.createStopFromAddress(

@@ -5,25 +5,18 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../models/stop_model.dart';
 
-/// Unified Route Optimization Service
-/// This service ensures that both driver and passenger panels always get the most efficient route
-/// by using advanced optimization algorithms and Google Maps API
 class UnifiedRouteOptimizationService {
   static const String _googleMapsApiKey = String.fromEnvironment(
     'GOOGLE_MAPS_API_KEY',
     defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
   );
 
-  static const double _earthRadius = 6371000; // meters
+  static const double _earthRadius = 6371000;
 
-  // Cache for consistent results across panels
   static final Map<String, List<Map<String, dynamic>>> _routeCache = {};
   static final Map<String, DateTime> _cacheTimestamps = {};
   static const Duration _cacheValidity = Duration(minutes: 5);
 
-  /// Main optimization method that always returns the most efficient route
-  /// Uses Google Maps API with fallback to advanced local algorithms
-  /// Ensures consistent results across driver and passenger panels
   static Future<List<Map<String, dynamic>>> optimizeRoute({
     required Map<String, double> driverLocation,
     required List<Map<String, dynamic>> stops,
@@ -33,11 +26,9 @@ class UnifiedRouteOptimizationService {
     if (stops.isEmpty) return stops;
     if (stops.length == 1) return stops;
 
-    // Generate cache key if not provided
     final effectiveCacheKey =
         cacheKey ?? _generateCacheKey(driverLocation, stops);
 
-    // Check cache first for consistency
     if (_routeCache.containsKey(effectiveCacheKey)) {
       final cachedTimestamp = _cacheTimestamps[effectiveCacheKey];
       if (cachedTimestamp != null &&
@@ -80,7 +71,6 @@ class UnifiedRouteOptimizationService {
     return result;
   }
 
-  /// Generate a unique cache key for the route optimization
   static String _generateCacheKey(
       Map<String, double> driverLocation, List<Map<String, dynamic>> stops) {
     final locationHash =
@@ -92,14 +82,12 @@ class UnifiedRouteOptimizationService {
     return '${locationHash}_${stops.length}_${stopsHash.hashCode}';
   }
 
-  /// Cache the optimized route for consistency
   static void _cacheRoute(String cacheKey, List<Map<String, dynamic>> route) {
     _routeCache[cacheKey] = List.from(route);
     _cacheTimestamps[cacheKey] = DateTime.now();
     print('[UnifiedRouteOptimization] Rota cache\'lendi: $cacheKey');
   }
 
-  /// Clear expired cache entries
   static void _clearExpiredCache() {
     final now = DateTime.now();
     final expiredKeys = <String>[];
@@ -135,14 +123,12 @@ class UnifiedRouteOptimizationService {
     return null;
   }
 
-  /// Get or create cached route - ensures consistency between panels
   static Future<List<Map<String, dynamic>>> getOrCreateCachedRoute({
     required String cacheKey,
     required Map<String, double> driverLocation,
     required List<Map<String, dynamic>> stops,
     bool useGoogleApi = true,
   }) async {
-    // First check if we have a valid cached route
     final cachedRoute = getCachedRoute(cacheKey);
     if (cachedRoute != null) {
       print(
@@ -150,7 +136,6 @@ class UnifiedRouteOptimizationService {
       return cachedRoute;
     }
 
-    // If no cached route exists, create one and cache it
     print(
         '[UnifiedRouteOptimization] Cache\'de rota bulunamadı, yeni rota oluşturuluyor: $cacheKey');
     final optimizedRoute = await optimizeRoute(
@@ -160,7 +145,6 @@ class UnifiedRouteOptimizationService {
       cacheKey: cacheKey,
     );
 
-    // Cache the result for future use
     if (optimizedRoute.isNotEmpty) {
       _cacheRoute(cacheKey, optimizedRoute);
       print('[UnifiedRouteOptimization] Yeni rota cache\'lendi: $cacheKey');
@@ -273,17 +257,14 @@ class UnifiedRouteOptimizationService {
           if (waypointOrder != null && waypointOrder.isNotEmpty) {
             final optimizedStops = <Map<String, dynamic>>[];
 
-            // Add optimized waypoints in order
             for (final index in waypointOrder) {
               if (index >= 0 && index < stops.length - 1) {
                 optimizedStops.add(stops[index]);
               }
             }
 
-            // Add destination
             optimizedStops.add(stops.last);
 
-            // Add route metadata
             final legs = route['legs'] as List;
             double totalDistance = 0;
             int totalDuration = 0;
@@ -293,12 +274,9 @@ class UnifiedRouteOptimizationService {
               totalDuration += (leg['duration']['value'] as int);
             }
 
-            // Add metadata to each stop
             for (final stop in optimizedStops) {
-              stop['totalRouteDistance'] =
-                  totalDistance / 1000; // Convert to km
-              stop['totalRouteDuration'] =
-                  totalDuration / 60; // Convert to minutes
+              stop['totalRouteDistance'] = totalDistance / 1000;
+              stop['totalRouteDuration'] = totalDuration / 60;
               stop['optimizationMethod'] = 'google_maps_api';
             }
 
@@ -332,13 +310,11 @@ class UnifiedRouteOptimizationService {
       print(
           '[UnifiedRouteOptimization] Gelişmiş yerel algoritma başlatılıyor...');
 
-      // Strategy 1: Nearest Neighbor with 2-opt optimization
       final nearestNeighborRoute = await _nearestNeighborWith2Opt(
         driverLocation: driverLocation,
         stops: stops,
       );
 
-      // Strategy 2: Genetic Algorithm (for larger routes)
       List<Map<String, dynamic>> geneticRoute = [];
       if (stops.length > 5) {
         geneticRoute = await _geneticAlgorithmOptimization(
@@ -347,7 +323,6 @@ class UnifiedRouteOptimizationService {
         );
       }
 
-      // Strategy 3: Ant Colony Optimization (for medium routes)
       List<Map<String, dynamic>> antColonyRoute = [];
       if (stops.length > 3 && stops.length <= 10) {
         antColonyRoute = await _antColonyOptimization(
@@ -356,7 +331,6 @@ class UnifiedRouteOptimizationService {
         );
       }
 
-      // Compare all strategies and select the best
       final routes = <List<Map<String, dynamic>>>[];
       if (nearestNeighborRoute.isNotEmpty) routes.add(nearestNeighborRoute);
       if (geneticRoute.isNotEmpty) routes.add(geneticRoute);
@@ -368,7 +342,6 @@ class UnifiedRouteOptimizationService {
         return _simpleDistanceSort(driverLocation, stops);
       }
 
-      // Find the best route by calculating total distance
       double bestDistance = double.infinity;
       List<Map<String, dynamic>> bestRoute = routes.first;
 
@@ -380,7 +353,6 @@ class UnifiedRouteOptimizationService {
         }
       }
 
-      // Add metadata
       for (final stop in bestRoute) {
         stop['totalRouteDistance'] = bestDistance;
         stop['optimizationMethod'] = 'local_advanced_algorithm';
@@ -404,14 +376,12 @@ class UnifiedRouteOptimizationService {
       final stopsCopy = List<Map<String, dynamic>>.from(stops);
       final optimizedRoute = <Map<String, dynamic>>[];
 
-      // Start from driver location
       Map<String, dynamic> currentLocation =
           Map<String, dynamic>.from(driverLocation);
       currentLocation['latitude'] = driverLocation['latitude'];
       currentLocation['longitude'] = driverLocation['longitude'];
 
       while (stopsCopy.isNotEmpty) {
-        // Find nearest stop
         double minDistance = double.infinity;
         int nearestIndex = 0;
 
@@ -429,18 +399,15 @@ class UnifiedRouteOptimizationService {
           }
         }
 
-        // Add nearest stop to route
         final nearestStop = stopsCopy.removeAt(nearestIndex);
         optimizedRoute.add(nearestStop);
 
-        // Update current location
         currentLocation['latitude'] =
             nearestStop['latitude']?.toDouble() ?? 0.0;
         currentLocation['longitude'] =
             nearestStop['longitude']?.toDouble() ?? 0.0;
       }
 
-      // Apply 2-opt optimization
       final optimized2Opt = _apply2OptOptimization(optimizedRoute);
 
       return optimized2Opt;
@@ -486,17 +453,14 @@ class UnifiedRouteOptimizationService {
       List<Map<String, dynamic>> route, int i, int j) {
     final newRoute = <Map<String, dynamic>>[];
 
-    // Add stops before i
     for (int k = 0; k <= i - 1; k++) {
       newRoute.add(route[k]);
     }
 
-    // Add stops from j to i in reverse order
     for (int k = j; k >= i; k--) {
       newRoute.add(route[k]);
     }
 
-    // Add remaining stops
     for (int k = j + 1; k < route.length; k++) {
       newRoute.add(route[k]);
     }
@@ -516,7 +480,6 @@ class UnifiedRouteOptimizationService {
       const int generations = 100;
       const double mutationRate = 0.1;
 
-      // Initialize population
       List<List<int>> population = [];
       for (int i = 0; i < populationSize; i++) {
         final individual = List<int>.generate(stops.length, (index) => index);
@@ -524,22 +487,18 @@ class UnifiedRouteOptimizationService {
         population.add(individual);
       }
 
-      // Evolution
       for (int generation = 0; generation < generations; generation++) {
-        // Calculate fitness for each individual
         final fitness = <double>[];
         for (final individual in population) {
           fitness.add(_calculateFitness(individual, stops));
         }
 
-        // Selection and crossover
         final newPopulation = <List<int>>[];
         for (int i = 0; i < populationSize; i++) {
           final parent1 = _tournamentSelection(population, fitness);
           final parent2 = _tournamentSelection(population, fitness);
           final child = _crossover(parent1, parent2);
 
-          // Mutation
           if (Random().nextDouble() < mutationRate) {
             _mutate(child);
           }
@@ -550,7 +509,6 @@ class UnifiedRouteOptimizationService {
         population = newPopulation;
       }
 
-      // Find best individual
       double bestFitness = double.infinity;
       List<int> bestIndividual = population.first;
 
@@ -562,7 +520,6 @@ class UnifiedRouteOptimizationService {
         }
       }
 
-      // Convert to route
       final optimizedRoute = <Map<String, dynamic>>[];
       for (final index in bestIndividual) {
         optimizedRoute.add(stops[index]);
@@ -586,10 +543,9 @@ class UnifiedRouteOptimizationService {
       const int antCount = 30;
       const int iterations = 50;
       const double evaporationRate = 0.1;
-      const double alpha = 1.0; // Pheromone importance
-      const double beta = 2.0; // Distance importance
+      const double alpha = 1.0;
+      const double beta = 2.0;
 
-      // Initialize pheromone matrix
       final pheromone = List.generate(
         stops.length,
         (i) => List.generate(stops.length, (j) => 1.0),
@@ -599,7 +555,6 @@ class UnifiedRouteOptimizationService {
       double bestDistance = double.infinity;
 
       for (int iteration = 0; iteration < iterations; iteration++) {
-        // Each ant builds a route
         for (int ant = 0; ant < antCount; ant++) {
           final route = _buildAntRoute(stops, pheromone, alpha, beta);
           final distance = _calculateRouteDistance(route, stops);
@@ -610,14 +565,12 @@ class UnifiedRouteOptimizationService {
           }
         }
 
-        // Evaporate pheromones
         for (int i = 0; i < stops.length; i++) {
           for (int j = 0; j < stops.length; j++) {
             pheromone[i][j] *= (1 - evaporationRate);
           }
         }
 
-        // Deposit pheromones on best route
         for (int i = 0; i < bestRoute.length - 1; i++) {
           final from = bestRoute[i];
           final to = bestRoute[i + 1];
@@ -625,7 +578,6 @@ class UnifiedRouteOptimizationService {
         }
       }
 
-      // Convert to route
       final optimizedRoute = <Map<String, dynamic>>[];
       for (final index in bestRoute) {
         optimizedRoute.add(stops[index]);
@@ -648,12 +600,10 @@ class UnifiedRouteOptimizationService {
     final route = <int>[];
     final unvisited = List<int>.generate(stops.length, (i) => i);
 
-    // Start from random position
     int current = unvisited.removeAt(Random().nextInt(unvisited.length));
     route.add(current);
 
     while (unvisited.isNotEmpty) {
-      // Calculate probabilities for next stop
       final probabilities = <double>[];
       double totalProbability = 0.0;
 
@@ -672,7 +622,6 @@ class UnifiedRouteOptimizationService {
         totalProbability += probability;
       }
 
-      // Select next stop based on probabilities
       double random = Random().nextDouble() * totalProbability;
       int selectedIndex = 0;
 
@@ -737,7 +686,6 @@ class UnifiedRouteOptimizationService {
     final child = List<int>.filled(parent1.length, -1);
     final random = Random();
 
-    // Order Crossover (OX)
     int start = random.nextInt(parent1.length);
     int end = random.nextInt(parent1.length);
 
@@ -747,12 +695,10 @@ class UnifiedRouteOptimizationService {
       end = temp;
     }
 
-    // Copy segment from parent1
     for (int i = start; i <= end; i++) {
       child[i] = parent1[i];
     }
 
-    // Fill remaining positions from parent2
     int parent2Index = 0;
     for (int i = 0; i < child.length; i++) {
       if (child[i] == -1) {
@@ -771,7 +717,6 @@ class UnifiedRouteOptimizationService {
   static void _mutate(List<int> individual) {
     final random = Random();
 
-    // Swap mutation
     final i = random.nextInt(individual.length);
     final j = random.nextInt(individual.length);
 
@@ -841,7 +786,7 @@ class UnifiedRouteOptimizationService {
             sin(dLon / 2);
 
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return _earthRadius * c / 1000; // Convert to kilometers
+    return _earthRadius * c / 1000;
   }
 
   /// Convert degrees to radians

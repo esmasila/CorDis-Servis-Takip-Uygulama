@@ -85,7 +85,6 @@ class _StopManagementScreenState extends State<StopManagementScreen> {
             padding: const EdgeInsets.all(8),
             child: Column(
               children: [
-                // Durak istatistikleri
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -186,7 +185,6 @@ class _StopManagementScreenState extends State<StopManagementScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Bölge filtresi
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('regions')
@@ -589,7 +587,6 @@ class _StopManagementScreenState extends State<StopManagementScreen> {
     try {
       print('🔍 Seçili bölge için duraklar getiriliyor: $regionId');
 
-      // Önce EnhancedStopManagementService'i dene
       try {
         final enhancedStops =
             await EnhancedStopManagementService.getStopsForRegion(regionId);
@@ -602,7 +599,6 @@ class _StopManagementScreenState extends State<StopManagementScreen> {
         print('⚠️ EnhancedStopManagementService hatası: $e');
       }
 
-      // Manuel arama yap
       final col = FirebaseFirestore.instance.collection('enhanced_stops');
       QuerySnapshot<Map<String, dynamic>> snap1;
       try {
@@ -636,10 +632,8 @@ class _StopManagementScreenState extends State<StopManagementScreen> {
             .get();
       }
 
-      // Bölge adı ile de arama yap
       QuerySnapshot<Map<String, dynamic>>? snap3;
       try {
-        // Önce bölge adını al
         final regionDoc = await FirebaseFirestore.instance
             .collection('regions')
             .doc(regionId)
@@ -663,8 +657,7 @@ class _StopManagementScreenState extends State<StopManagementScreen> {
       final Map<String, Map<String, dynamic>> byId = {};
       for (final d in [...snap1.docs, ...snap2.docs, ...(snap3?.docs ?? [])]) {
         final data = d.data();
-        
-        // Sadece gerçekten aktif, silinmemiş ve ana yol olmayan durakları al
+
         if (data['isActive'] == true &&
             data['isDeleted'] != true &&
             data['deletedAt'] == null &&
@@ -673,11 +666,12 @@ class _StopManagementScreenState extends State<StopManagementScreen> {
             data['deleted'] != true &&
             data['isArchived'] != true &&
             data['archived'] != true &&
-            data['isMainRoad'] != true) { // Ana yol duraklarını hariç tut
+            data['isMainRoad'] != true) {
           data['id'] = d.id;
           byId[d.id] = data;
         } else {
-          print('❌ Durak filtrelendi: ${data['name']} - isActive: ${data['isActive']}, isDeleted: ${data['isDeleted']}, deletedAt: ${data['deletedAt']}, status: ${data['status']}, isMainRoad: ${data['isMainRoad']}');
+          print(
+              '❌ Durak filtrelendi: ${data['name']} - isActive: ${data['isActive']}, isDeleted: ${data['isDeleted']}, deletedAt: ${data['deletedAt']}, status: ${data['status']}, isMainRoad: ${data['isMainRoad']}');
         }
       }
 
@@ -691,7 +685,8 @@ class _StopManagementScreenState extends State<StopManagementScreen> {
         return (tb as Timestamp).compareTo(ta as Timestamp);
       });
 
-      print('📊 Bölge $regionId için toplam ${stops.length} aktif durak bulundu');
+      print(
+          '📊 Bölge $regionId için toplam ${stops.length} aktif durak bulundu');
       return stops;
     } catch (e) {
       print('Bölge duraklarını getirme hatası: $e');

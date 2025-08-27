@@ -102,7 +102,6 @@ class _SignupScreenState extends State<SignupScreen> {
         'isEmailVerified': false,
       });
 
-      // Yolcu kaydından sonra passengers koleksiyonuna da ekle
       await FirebaseFirestore.instance
           .collection('passengers')
           .doc(userCredential.user!.uid)

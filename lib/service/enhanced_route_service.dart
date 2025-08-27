@@ -94,12 +94,12 @@ class EnhancedRouteService {
         print('📍 Tek durak için rota oluşturuluyor');
         return [stops.first.copyWith(order: 1)];
       }
-      
+
       final driverLocation = {
         'latitude': currentPosition.latitude,
         'longitude': currentPosition.longitude,
       };
-      
+
       final stopsAsWaypoints = stops
           .map((stop) => {
                 'latitude': stop.lat,
@@ -109,25 +109,27 @@ class EnhancedRouteService {
                 'passengerIds': [],
               })
           .toList();
-      
-      print('🚀 Unified Route Optimization Service ile ${stops.length} durak optimize ediliyor...');
-      
-      // Cache key oluştur (driver panel ile aynı format)
-      final cacheKey = 'driver_${stops.first.driverId}_${stops.length}_${currentPosition.latitude.toStringAsFixed(6)}_${currentPosition.longitude.toStringAsFixed(6)}';
+
+      print(
+          '🚀 Unified Route Optimization Service ile ${stops.length} durak optimize ediliyor...');
+
+      final cacheKey =
+          'driver_${stops.first.driverId}_${stops.length}_${currentPosition.latitude.toStringAsFixed(6)}_${currentPosition.longitude.toStringAsFixed(6)}';
       print('🔑 Cache key: $cacheKey');
-      
-      final optimizedWaypoints = await UnifiedRouteOptimizationService.optimizeRoute(
+
+      final optimizedWaypoints =
+          await UnifiedRouteOptimizationService.optimizeRoute(
         driverLocation: driverLocation,
         stops: stopsAsWaypoints,
         useGoogleApi: true,
         cacheKey: cacheKey,
       );
-      
+
       if (optimizedWaypoints.isEmpty) {
         print('⚠️ Unified optimizasyon başarısız, fallback kullanılıyor');
         return _fallbackOptimizeRoute(stops, currentPosition);
       }
-      
+
       final optimizedRoute = <StopModel>[];
       for (int i = 0; i < optimizedWaypoints.length; i++) {
         final waypoint = optimizedWaypoints[i];
@@ -139,12 +141,14 @@ class EnhancedRouteService {
         );
         optimizedRoute.add(originalStop.copyWith(order: i + 1));
       }
-      
-      // Get optimization statistics
-      final stats = UnifiedRouteOptimizationService.getRouteStatistics(optimizedWaypoints);
-      print('✅ ${optimizedRoute.length} durak Unified Service ile optimize edildi');
-      print('📊 Optimizasyon istatistikleri: ${stats['optimizationMethod']} - ${stats['totalDistance']?.toStringAsFixed(2)} km');
-      
+
+      final stats = UnifiedRouteOptimizationService.getRouteStatistics(
+          optimizedWaypoints);
+      print(
+          '✅ ${optimizedRoute.length} durak Unified Service ile optimize edildi');
+      print(
+          '📊 Optimizasyon istatistikleri: ${stats['optimizationMethod']} - ${stats['totalDistance']?.toStringAsFixed(2)} km');
+
       return optimizedRoute;
     } catch (e) {
       print('❌ Unified optimizasyon hatası: $e');

@@ -18,7 +18,6 @@ class ArrivalTimeService {
       print(
           '🔍 ArrivalTimeService: Varış süresi hesaplanıyor - Yolcu: $passengerId, Şoför: $driverId');
 
-      // Şoför konumunu al
       final driverLocationDoc =
           await _firestore.collection('live_locations').doc(driverId).get();
       if (!driverLocationDoc.exists) {
@@ -45,7 +44,6 @@ class ArrivalTimeService {
 
       print('📍 Şoför konumu: (${driverData['lat']}, ${driverData['lng']})');
 
-      // Yolcunun durağını enhanced_stops koleksiyonundan al
       print('🔍 Enhanced_stops koleksiyonundan durak aranıyor...');
       final stopsQuery = await _firestore
           .collection('enhanced_stops')
@@ -60,7 +58,6 @@ class ArrivalTimeService {
       if (stopsQuery.docs.isEmpty) {
         print('⚠️ Yolcu için aktif durak bulunamadı: $passengerId');
         print('🔍 Legacy stops koleksiyonu deneniyor...');
-        // Alternatif olarak stops koleksiyonunu da kontrol et
         final legacyStopsQuery = await _firestore
             .collection('stops')
             .where('assignedPassengerIds', arrayContains: passengerId)
@@ -107,7 +104,8 @@ class ArrivalTimeService {
       print('   - PassengerIds: ${stopData['passengerIds']}');
       print('   - Raw stopData: $stopData');
       print('🔍 DEBUG: stopData[\'address\'] = "${stopData['address']}"');
-      print('🔍 DEBUG: stopData[\'passengerName\'] = "${stopData['passengerName']}"');
+      print(
+          '🔍 DEBUG: stopData[\'passengerName\'] = "${stopData['passengerName']}"');
 
       final passengerStop = StopModel(
         id: stopDoc.id,
@@ -126,7 +124,6 @@ class ArrivalTimeService {
       print(
           '✅ StopModel oluşturuldu: ${passengerStop.passengerName} - ${passengerStop.address}');
 
-      // Şoförün tüm duraklarını enhanced_stops koleksiyonundan al
       print('🔍 Şoförün tüm durakları aranıyor...');
       final allStopsQuery = await _firestore
           .collection('enhanced_stops')
@@ -141,7 +138,6 @@ class ArrivalTimeService {
       if (allStopsQuery.docs.isEmpty) {
         print('⚠️ Şoför için aktif durak bulunamadı: $driverId');
         print('🔍 Legacy şoför durakları deneniyor...');
-        // Alternatif olarak stops koleksiyonunu da kontrol et
         final legacyAllStopsQuery = await _firestore
             .collection('stops')
             .where('driverId', isEqualTo: driverId)
@@ -224,10 +220,8 @@ class ArrivalTimeService {
           '   - Passenger Stop: ${passengerStop.passengerName} - ${passengerStop.address}');
       print('   - Total Stops: ${allStops.length}');
 
-      // Rota optimizasyonu yap
       final optimizedStops = allStops;
 
-      // Yolcunun durağının sırasını bul
       int passengerStopIndex = -1;
       for (int i = 0; i < optimizedStops.length; i++) {
         if (optimizedStops[i].id == passengerStop.id) {
@@ -240,24 +234,22 @@ class ArrivalTimeService {
 
       if (passengerStopIndex == -1) {
         print('⚠️ Yolcu durağı optimize edilmiş rotada bulunamadı');
-        passengerStopIndex = 0; // Varsayılan olarak ilk durak
+        passengerStopIndex = 0;
         print('   - Passenger Stop Index varsayılan olarak 0 yapıldı');
       }
 
-      // Tahmini varış süresini hesapla
       int estimatedMinutes = 0;
-      estimatedMinutes += 5; // Başlangıç gecikmesi
+      estimatedMinutes += 5;
 
       for (int i = 0; i <= passengerStopIndex; i++) {
-        estimatedMinutes += 3; // Her durak için 3 dakika
+        estimatedMinutes += 3;
         if (i < passengerStopIndex) {
-          estimatedMinutes += 4; // Duraklar arası 4 dakika
+          estimatedMinutes += 4;
         }
       }
 
       print('   - Base Estimated Minutes: $estimatedMinutes');
 
-      // Hız faktörü uygula
       if (driverData['speed'] != null && driverData['speed'] > 0) {
         final speedFactor = 0.8;
         estimatedMinutes = (estimatedMinutes * speedFactor).round();
@@ -268,7 +260,6 @@ class ArrivalTimeService {
       final arrivalTime =
           DateTime.now().add(Duration(minutes: estimatedMinutes));
 
-      // Mesafeyi hesapla
       final distance = _calculateDistance(
         driverPosition.latitude,
         driverPosition.longitude,

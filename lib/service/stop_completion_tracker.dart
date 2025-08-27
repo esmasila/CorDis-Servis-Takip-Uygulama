@@ -8,16 +8,12 @@ class StopCompletionTracker {
   factory StopCompletionTracker() => _instance;
   StopCompletionTracker._internal();
 
-  // Tamamlanan durakları takip eden set
   final Set<String> _completedStops = <String>{};
 
-  // Stream subscription'ları
   StreamSubscription<QuerySnapshot>? _stopLogsSubscription;
 
-  // Callback fonksiyonu - marker'ları yeniden çizmek için
   VoidCallback? _onStopsUpdated;
 
-  /// Durak tamamlama durumunu takip etmeye başla
   void startTracking({
     required String driverId,
     required VoidCallback onStopsUpdated,
@@ -26,22 +22,18 @@ class StopCompletionTracker {
     _trackStopLogs(driverId);
   }
 
-  /// Durak tamamlama durumunu takip etmeyi durdur
   void stopTracking() {
     _stopLogsSubscription?.cancel();
     _completedStops.clear();
     _onStopsUpdated = null;
   }
 
-  /// Belirli bir durağın tamamlanıp tamamlanmadığını kontrol et
   bool isStopCompleted(String stopId) {
     return _completedStops.contains(stopId);
   }
 
-  /// Tamamlanan durakların listesini al
   Set<String> get completedStops => Set.from(_completedStops);
 
-  /// Durak loglarını takip et
   void _trackStopLogs(String driverId) {
     _stopLogsSubscription?.cancel();
 
@@ -76,7 +68,6 @@ class StopCompletionTracker {
         print(
             '   - Log: $stopId -> Status: $status, Type: $type, Timestamp: $timestamp');
 
-        // Completion loglarını ve status loglarını kabul et
         if (stopId != null &&
             (status == 'completed' ||
                 status == 'arrived' ||
@@ -87,7 +78,6 @@ class StopCompletionTracker {
         }
       }
 
-      // Tamamlanan durakları güncelle
       print('📊 StopCompletionTracker: Tamamlanan duraklar: $completed');
 
       if (_completedStops != completed) {
@@ -96,7 +86,6 @@ class StopCompletionTracker {
         print('✅ StopCompletionTracker: Durak durumu güncellendi');
         print('   - Toplam tamamlanan: ${_completedStops.length}');
 
-        // Marker'ları yeniden çizmek için callback'i çağır
         _onStopsUpdated?.call();
 
         if (kDebugMode) {
@@ -109,7 +98,6 @@ class StopCompletionTracker {
     });
   }
 
-  /// Manuel olarak bir durağı tamamlandı olarak işaretle
   void markStopAsCompleted(String stopId) {
     if (!_completedStops.contains(stopId)) {
       _completedStops.add(stopId);
@@ -121,7 +109,6 @@ class StopCompletionTracker {
     }
   }
 
-  /// Manuel olarak bir durağı tamamlanmamış olarak işaretle
   void markStopAsIncomplete(String stopId) {
     if (_completedStops.contains(stopId)) {
       _completedStops.remove(stopId);
@@ -134,7 +121,6 @@ class StopCompletionTracker {
     }
   }
 
-  /// Tüm durakları sıfırla
   void resetAllStops() {
     _completedStops.clear();
     _onStopsUpdated?.call();

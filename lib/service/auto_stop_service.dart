@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'geocoding_service.dart';
 
 class AutoStopService {
-  static const double _proximityThreshold = 100.0; // Orijinal değer: 100 metre
+  static const double _proximityThreshold = 100.0;
   static const double _mainRoadSearchRadius = 1000.0;
   static const String _googleMapsApiKey = String.fromEnvironment(
     'GOOGLE_MAPS_API_KEY',
@@ -31,7 +31,6 @@ class AutoStopService {
         return;
       }
 
-      // Önce yakın konumda durak var mı kontrol et
       final nearbyStop = await _findNearbyStop(
         coordinates['lat']!,
         coordinates['lng']!,
@@ -41,7 +40,6 @@ class AutoStopService {
       if (nearbyStop != null) {
         print('[AutoStopService] Yakın durak bulundu: ${nearbyStop['name']}');
 
-        // Yolcu zaten bu durakta mı kontrol et
         final existingPassengerIds =
             List<String>.from(nearbyStop['passengerIds'] ?? []);
         if (!existingPassengerIds.contains(passengerId)) {
@@ -60,7 +58,6 @@ class AutoStopService {
         return;
       }
 
-      // Yakın durak yoksa, yolcunun mevcut durağını kontrol et
       final existingPassengerStop =
           await _findExistingPassengerStop(passengerId, regionId);
 
@@ -68,7 +65,6 @@ class AutoStopService {
         print(
             '[AutoStopService] Yolcunun mevcut durağı bulundu, güncelleniyor: ${existingPassengerStop['name']}');
 
-        // Mevcut durağı yeni konuma taşı
         await _updateStopLocation(
           existingPassengerStop['id'],
           coordinates['lat']!,
@@ -81,7 +77,6 @@ class AutoStopService {
         return;
       }
 
-      // Hiç durak yoksa yeni oluştur
       final optimalStopLocation = await _findOptimalStopLocationByRoadWidth(
         homeLatitude: coordinates['lat']!,
         homeLongitude: coordinates['lng']!,
@@ -145,17 +140,17 @@ class AutoStopService {
           .where('regionId', isEqualTo: regionId)
           .where('isActive', isEqualTo: true)
           .get();
-      
+
       Map<String, dynamic>? closestStop;
       double? closestDistance;
       Map<String, dynamic>? extendedStop;
       double? extendedDistance;
-      
+
       for (final doc in stopsSnapshot.docs) {
         final data = doc.data();
         final stopLat = data['latitude'] as double?;
         final stopLng = data['longitude'] as double?;
-        
+
         if (stopLat != null && stopLng != null) {
           final distance = Geolocator.distanceBetween(
             latitude,
@@ -163,8 +158,7 @@ class AutoStopService {
             stopLat,
             stopLng,
           );
-          
-          // 500 metre içindeki en yakın durak
+
           if (distance <= _proximityThreshold) {
             if (closestDistance == null || distance < closestDistance) {
               closestDistance = distance;
@@ -176,11 +170,10 @@ class AutoStopService {
               };
             }
           }
-          
-          // 1000 metre içindeki en yakın durak (yolcu sayısı az olan)
+
           if (distance <= 1000.0) {
             final passengerCount = (data['passengerCount'] ?? 0) as int;
-            if (passengerCount < 3) { // Yolcu sayısı 3'ten az olan duraklara ekle
+            if (passengerCount < 3) {
               if (extendedDistance == null || distance < extendedDistance) {
                 extendedDistance = distance;
                 extendedStop = {
@@ -194,19 +187,18 @@ class AutoStopService {
           }
         }
       }
-      
-      // Önce 500 metre içindeki durağı kullan
+
       if (closestStop != null) {
-        print('[AutoStopService] En yakın durak bulundu: ${closestStop['name']} (${closestDistance?.toStringAsFixed(1)}m)');
+        print(
+            '[AutoStopService] En yakın durak bulundu: ${closestStop['name']} (${closestDistance?.toStringAsFixed(1)}m)');
         return closestStop;
       }
-      
-      // 500 metre içinde durak yoksa, 1000 metre içindeki az yolculu durağı kullan
+
       if (extendedStop != null) {
-        print('[AutoStopService] Genişletilmiş arama ile durak bulundu: ${extendedStop['name']} (${extendedDistance?.toStringAsFixed(1)}m)');
+        print(
+            '[AutoStopService] Genişletilmiş arama ile durak bulundu: ${extendedStop['name']} (${extendedDistance?.toStringAsFixed(1)}m)');
         return extendedStop;
       }
-      
     } catch (e) {
       print('Yakın durak arama hatası: $e');
     }
@@ -1276,7 +1268,6 @@ class AutoStopService {
     }
   }
 
-  // Yolcunun mevcut durağını bul
   static Future<Map<String, dynamic>?> _findExistingPassengerStop(
     String passengerId,
     String regionId,
@@ -1304,7 +1295,6 @@ class AutoStopService {
     }
   }
 
-  // Durak konumunu güncelle
   static Future<void> _updateStopLocation(
     String stopId,
     double latitude,
