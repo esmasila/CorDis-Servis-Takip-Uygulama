@@ -188,6 +188,31 @@ lib/
 
 
 
+---
+
+## 🔥 **Firebase Console & Veritabanı Yönetimi**
+
+### **Firebase Console Ekranları**
+
+<div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin: 20px 0;">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-1.png" width="90" alt="Firebase Console 1" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-2.png" width="90" alt="Firebase Console 2" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-3.png" width="90" alt="Firebase Console 3" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-4.png" width="90" alt="Firebase Console 4" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+</div>
+
+**Firebase Console Özellikleri:**
+- **Firestore Veritabanı**: NoSQL veritabanı yönetimi
+- **Kullanıcı Kimlik Doğrulama**: Firebase Auth yönetimi
+- **Cloud Storage**: Dosya depolama yönetimi
+- **Analytics**: Kullanıcı davranış analizi
+- **Performance Monitoring**: Uygulama performans takibi
+- **Crashlytics**: Hata raporlama ve analiz
+- **Push Notifications**: Bildirim yönetimi
+- **Real-time Database**: Gerçek zamanlı veri senkronizasyonu
+
+---
+
 ## 📈 Roadmap
 
 - [ ] **v2.0**: AI destekli rota optimizasyonu
