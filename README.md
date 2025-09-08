@@ -186,11 +186,6 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 - **Firestore Veritabanı**: NoSQL veritabanı yönetimi
 - **Kullanıcı Kimlik Doğrulama**: Firebase Auth yönetimi
 - **Cloud Storage**: Dosya depolama yönetimi
-- **Analytics**: Kullanıcı davranış analizi
-- **Performance Monitoring**: Uygulama performans takibi
-- **Crashlytics**: Hata raporlama ve analiz
-- **Push Notifications**: Bildirim yönetimi
-- **Real-time Database**: Gerçek zamanlı veri senkronizasyonu
 
 ---
 
