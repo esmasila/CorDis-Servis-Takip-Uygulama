@@ -171,25 +171,6 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 
 ---
 
-## 📁 Proje Yapısı
-
-```
-lib/
-├── admin/                 # Yönetici paneli
-├── driver/               # Şoför ekranları
-├── passenger/            # Yolcu ekranları
-├── models/               # Veri modelleri
-├── providers/            # State management
-├── service/              # Business logic servisleri
-├── utils/                # Yardımcı fonksiyonlar
-├── view/                 # Ana ekranlar
-└── widget/               # Yeniden kullanılabilir widget'lar
-```
-
-
-
----
-
 ## 🔥 **Firebase Console & Veritabanı Yönetimi**
 
 ### **Firebase Console Ekranları**
@@ -210,6 +191,23 @@ lib/
 - **Crashlytics**: Hata raporlama ve analiz
 - **Push Notifications**: Bildirim yönetimi
 - **Real-time Database**: Gerçek zamanlı veri senkronizasyonu
+
+---
+
+## 📁 Proje Yapısı
+
+```
+lib/
+├── admin/                 # Yönetici paneli
+├── driver/               # Şoför ekranları
+├── passenger/            # Yolcu ekranları
+├── models/               # Veri modelleri
+├── providers/            # State management
+├── service/              # Business logic servisleri
+├── utils/                # Yardımcı fonksiyonlar
+├── view/                 # Ana ekranlar
+└── widget/               # Yeniden kullanılabilir widget'lar
+```
 
 ---
 
