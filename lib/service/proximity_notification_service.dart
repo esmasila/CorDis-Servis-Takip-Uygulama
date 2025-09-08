@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'user_session.dart';
 import 'location_service.dart';
+
 class ProximityNotificationService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FlutterLocalNotificationsPlugin _notifications =
@@ -29,6 +30,7 @@ class ProximityNotificationService {
     _isInitialized = true;
     print('✅ Yakınlık bildirimi servisi başlatıldı');
   }
+
   static Future<void> _initializeNotifications() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -43,6 +45,7 @@ class ProximityNotificationService {
     );
     await _notifications.initialize(initSettings);
   }
+
   static Future<void> startProximityTracking(
       {String? passengerId, String? driverId}) async {
     if (!_isInitialized) {
@@ -94,12 +97,14 @@ class ProximityNotificationService {
     _isTracking = true;
     print('✅ Yakınlık takibi başlatıldı');
   }
+
   static Future<void> stopProximityTracking() async {
     _proximityCheckTimer?.cancel();
     _locationStream?.cancel();
     _isTracking = false;
     print('🛑 Yakınlık takibi durduruldu');
   }
+
   static Future<void> _checkProximityOnce() async {
     try {
       if (_activePassengerId == null || _activeDriverId == null) return;
@@ -169,6 +174,7 @@ class ProximityNotificationService {
       print('❌ Yakınlık kontrolü hatası: $e');
     }
   }
+
   static Future<void> _checkDriverProximity(
     String driverId,
     Map<String, dynamic> driverData,
@@ -204,6 +210,7 @@ class ProximityNotificationService {
       print('❌ Şoför yakınlık kontrolü hatası: $e');
     }
   }
+
   static Future<void> _handleProximityDetected(
     String driverId,
     Map<String, dynamic> driverData,
@@ -230,6 +237,7 @@ class ProximityNotificationService {
       print('❌ Yakınlık bildirimi hatası: $e');
     }
   }
+
   static Future<void> _showProximityNotification(
       String title, String body) async {
     try {
@@ -260,6 +268,7 @@ class ProximityNotificationService {
       print('❌ Yakınlık bildirimi gösterme hatası: $e');
     }
   }
+
   static Future<double> _getUserProximityDistance(String userId) async {
     try {
       final userDoc = await _firestore.collection('users').doc(userId).get();
@@ -280,6 +289,7 @@ class ProximityNotificationService {
     }
     return _defaultProximityDistance;
   }
+
   static void _cleanupOldNotificationTimes() {
     final now = DateTime.now();
     _lastNotificationTimes.removeWhere(
@@ -287,6 +297,7 @@ class ProximityNotificationService {
     _lastProximityNotificationTimes.removeWhere(
         (key, value) => now.difference(value) > _proximityNotificationCooldown);
   }
+
   static Future<void> _saveProximityData(
     String userId,
     String driverId,
@@ -311,6 +322,7 @@ class ProximityNotificationService {
       print('❌ Yakınlık verisi kaydetme hatası: $e');
     }
   }
+
   static Future<void> _logProximityEvent(
     String userId,
     String driverId,
@@ -330,6 +342,7 @@ class ProximityNotificationService {
       print('❌ Yakınlık olayı kaydetme hatası: $e');
     }
   }
+
   static Future<void> updateUserProximitySettings(
     String userId,
     double proximityDistance,
@@ -347,12 +360,14 @@ class ProximityNotificationService {
       throw e;
     }
   }
+
   static Future<void> checkProximityInBackground() async {
     if (!_isInitialized) {
       await initialize();
     }
     await _checkProximityOnce();
   }
+
   static Future<List<Map<String, dynamic>>> getProximityHistory(
     String userId, {
     int limit = 50,
@@ -384,6 +399,7 @@ class ProximityNotificationService {
       return [];
     }
   }
+
   static Future<Map<String, dynamic>> getDailyProximityStats(
     String userId,
     DateTime date,
@@ -429,9 +445,11 @@ class ProximityNotificationService {
       };
     }
   }
+
   static Future<double> getNotificationDistance(String userId) async {
     return await _getUserProximityDistance(userId);
   }
+
   static Future<void> updateNotificationDistance(
     double distance, {
     String? passengerId,
@@ -442,6 +460,7 @@ class ProximityNotificationService {
     }
     await updateUserProximitySettings(userId, distance, true);
   }
+
   static bool get isInitialized => _isInitialized;
   static bool get isTracking => _isTracking;
   static int get activeTimerCount =>
