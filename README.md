@@ -66,6 +66,21 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 
 ## 📱 Ekran Görüntüleri
 
+### 🔐 **Giriş Ekranları**
+
+<div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin: 20px 0;">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/login-screenshots/login-screen-1.jpg" width="90" alt="Login Ekranı 1" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/login-screenshots/login-screen-2.jpg" width="90" alt="Login Ekranı 2" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+</div>
+
+**Giriş Ekranı Özellikleri:**
+- **Kullanıcı Kimlik Doğrulama**: Güvenli giriş sistemi
+- **Rol Bazlı Erişim**: Admin, Şoför ve Yolcu rolleri
+- **Modern UI/UX**: Kullanıcı dostu arayüz tasarımı
+- **Güvenlik**: Firebase Auth entegrasyonu
+
+---
+
 ### 🎛️ **Admin Paneli Ekranları**
 
 #### **1️⃣  Yönetim Paneli & Sistem Kontrolü**
