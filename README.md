@@ -175,11 +175,11 @@ Modern ve gelişmiş bir servis takip sistemi. Şoförlerin konumlarını gerçe
 
 ### **Firebase Console Ekranları**
 
-<div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin: 20px 0;">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-1.png" width="90" alt="Firebase Console 1" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-2.png" width="90" alt="Firebase Console 2" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-3.png" width="90" alt="Firebase Console 3" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-4.png" width="90" alt="Firebase Console 4" style="border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0;">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-1.png" width="200" alt="Firebase Console 1" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-2.png" width="200" alt="Firebase Console 2" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-3.png" width="200" alt="Firebase Console 3" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+  <img src="https://raw.githubusercontent.com/esmasila/CorDis-Servis-Takip-Uygulama/main/docs/firebase-screenshots/firebase-console-4.png" width="200" alt="Firebase Console 4" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
 </div>
 
 **Firebase Console Özellikleri:**
