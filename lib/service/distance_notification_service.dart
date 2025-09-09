@@ -174,3 +174,6 @@ class DistanceNotificationService {
     }
   }
 }
+
+// Updated
+

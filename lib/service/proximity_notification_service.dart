@@ -472,3 +472,6 @@ class ProximityNotificationService {
     print('🛑 Yakınlık bildirimi servisi kapatıldı');
   }
 }
+
+// Updated
+

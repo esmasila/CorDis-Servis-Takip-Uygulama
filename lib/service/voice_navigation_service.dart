@@ -274,3 +274,6 @@ class NavigationStep {
     return 'NavigationStep(instruction: $instruction, distance: $distance, duration: $duration)';
   }
 }
+
+// Updated
+

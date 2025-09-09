@@ -627,3 +627,6 @@ class NotificationService {
     await clearAllNotifications();
   }
 }
+
+// Updated
+

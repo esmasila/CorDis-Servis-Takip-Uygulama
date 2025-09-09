@@ -52,3 +52,6 @@ void main() async {
     print('❌ Hata oluştu: $e');
   }
 }
+
+// Updated
+
