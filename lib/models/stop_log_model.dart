@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class StopLogModel {
   final String id;
   final String stopId;
@@ -82,6 +83,7 @@ class StopLogModel {
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
+
   StopLogModel copyWith({
     String? id,
     String? stopId,
@@ -124,9 +126,3 @@ class StopLogModel {
     );
   }
 }
-
-
-
- Again
-
-

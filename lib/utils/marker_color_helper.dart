@@ -52,6 +52,5 @@ class MarkerColorHelper {
 
 
 
- Again
 
 

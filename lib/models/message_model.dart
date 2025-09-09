@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class MessageModel {
   final String id;
   final String senderId;
@@ -57,6 +58,7 @@ class MessageModel {
       if (expireAfterHours != null) 'expireAfterHours': expireAfterHours,
     };
   }
+
   MessageModel copyWith({
     bool? isRead,
     bool? isUrgent,
@@ -78,9 +80,3 @@ class MessageModel {
     );
   }
 }
-
-
-
- Again
-
-

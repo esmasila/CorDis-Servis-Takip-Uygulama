@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 class RoadsService {
   static const String _baseUrl = 'https://roads.googleapis.com/v1/snapToRoads';
   static const String _googleApiKey = String.fromEnvironment(
@@ -39,15 +40,8 @@ class RoadsService {
           if (lat == null || lng == null) continue;
           snapped.add(LatLng(lat, lng));
         }
-      } catch (_) {
-      }
+      } catch (_) {}
     }
     return snapped.isNotEmpty ? snapped : inputPoints;
   }
 }
-
-
-
- Again
-
-

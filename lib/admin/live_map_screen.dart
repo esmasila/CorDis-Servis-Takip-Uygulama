@@ -2047,9 +2047,3 @@ class _EnhancedLiveMapScreenState extends State<EnhancedLiveMapScreen> {
     );
   }
 }
-
-
-
- Again
-
-

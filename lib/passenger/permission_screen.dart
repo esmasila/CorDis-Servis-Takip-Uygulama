@@ -4,11 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../service/permission_service.dart';
 import '../service/user_session.dart';
 import '../models/permission_model.dart';
+
 class PermissionScreen extends StatefulWidget {
   const PermissionScreen({super.key});
   @override
   State<PermissionScreen> createState() => _PermissionScreenState();
 }
+
 class _PermissionScreenState extends State<PermissionScreen> {
   final user = FirebaseAuth.instance.currentUser!;
   String? userName;
@@ -25,6 +27,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     _loadUserName();
     _loadActivePermissions();
   }
+
   Future<void> _loadUserName() async {
     final doc = await FirebaseFirestore.instance
         .collection('users')
@@ -34,6 +37,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       userName = doc.data()?['name'] ?? 'Yolcu';
     });
   }
+
   void _loadActivePermissions() {
     PermissionService.getUserPermissions(user.uid).listen((permissions) {
       if (mounted) {
@@ -47,6 +51,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       }
     });
   }
+
   void _filterPermissionsByDateRange() {
     if (selectedStartDate == null || selectedEndDate == null) {
       filteredPermissions = activePermissions;
@@ -78,6 +83,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       setState(() {});
     }
   }
+
   Future<void> _createPermission(PermissionType type) async {
     if (userName == null) return;
     DateTime startDate;
@@ -135,6 +141,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       }
     }
   }
+
   Future<void> _selectVacationDates() async {
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
@@ -152,6 +159,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       await _createPermission(PermissionType.vacation);
     }
   }
+
   Future<void> _selectDateRangeForFilter() async {
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
@@ -170,6 +178,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       await _generateRouteForDateRange();
     }
   }
+
   Future<void> _generateRouteForDateRange() async {
     if (selectedStartDate == null || selectedEndDate == null) return;
     try {
@@ -233,6 +242,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       }
     }
   }
+
   void _clearDateFilter() {
     setState(() {
       selectedStartDate = null;
@@ -247,6 +257,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -514,8 +525,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
                           end: Alignment.bottomRight,
                           colors: [
                             Colors.red.shade50,
-                            Colors.red
-                                .shade100,
+                            Colors.red.shade100,
                           ],
                         ),
                         borderRadius: const BorderRadius.only(
@@ -618,8 +628,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.red
-                                  .shade50,
+                              color: Colors.red.shade50,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: Colors.red.shade200,
@@ -702,6 +711,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       ),
     );
   }
+
   Widget _buildModernPermissionCard({
     required String title,
     required Color color,
@@ -782,6 +792,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       ),
     );
   }
+
   Widget _buildModernPermissionButton({
     required String text,
     required String subtitle,
@@ -872,6 +883,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       ),
     );
   }
+
   Future<void> _cancelPermission(String permissionId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -905,6 +917,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       }
     }
   }
+
   IconData _getPermissionIcon(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -919,6 +932,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
         return Icons.beach_access;
     }
   }
+
   String _getPermissionDateText(PermissionModel permission) {
     if (permission.type == PermissionType.vacation) {
       return '${_formatDate(permission.startDate)} - ${_formatDate(permission.endDate!)}';
@@ -926,18 +940,14 @@ class _PermissionScreenState extends State<PermissionScreen> {
       return _formatDate(permission.startDate);
     }
   }
+
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
+
   @override
   void dispose() {
     _descriptionController.dispose();
     super.dispose();
   }
 }
-
-
-
- Again
-
-

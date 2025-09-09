@@ -7,12 +7,14 @@ import '../service/location_service.dart';
 import '../service/user_session.dart';
 import '../service/enhanced_tracking_service.dart';
 import 'dart:async';
+
 class NotificationDebugScreen extends StatefulWidget {
   const NotificationDebugScreen({super.key});
   @override
   State<NotificationDebugScreen> createState() =>
       _NotificationDebugScreenState();
 }
+
 class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
   bool _proximityServiceInitialized = false;
   bool _proximityServiceTracking = false;
@@ -33,11 +35,13 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
     _initializeDebugScreen();
     _startPeriodicUpdates();
   }
+
   @override
   void dispose() {
     _updateTimer?.cancel();
     super.dispose();
   }
+
   Future<void> _initializeDebugScreen() async {
     setState(() {
       _isLoading = true;
@@ -52,11 +56,13 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       });
     }
   }
+
   void _startPeriodicUpdates() {
     _updateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _updateAllStatus();
     });
   }
+
   Future<void> _updateAllStatus() async {
     try {
       _proximityServiceInitialized = ProximityNotificationService.isInitialized;
@@ -108,6 +114,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       debugPrint('Durum güncelleme hatası: $e');
     }
   }
+
   Future<void> _testProximityNotification() async {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,6 +139,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       );
     }
   }
+
   Future<void> _toggleProximityTracking() async {
     try {
       if (_proximityServiceTracking) {
@@ -158,6 +166,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       );
     }
   }
+
   Future<void> _toggleDistanceAlert() async {
     try {
       final userId = UserSession.userId;
@@ -183,6 +192,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,6 +231,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
             ),
     );
   }
+
   Widget _buildServiceStatusCard() {
     return Card(
       child: Padding(
@@ -261,6 +272,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       ),
     );
   }
+
   Widget _buildLocationCard() {
     return Card(
       child: Padding(
@@ -299,6 +311,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       ),
     );
   }
+
   Widget _buildNotificationServicesCard() {
     return Card(
       child: Padding(
@@ -335,6 +348,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       ),
     );
   }
+
   Widget _buildTestButtonsCard() {
     return Card(
       child: Padding(
@@ -411,6 +425,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       ),
     );
   }
+
   Widget _buildDebugInfoCard() {
     return Card(
       child: Padding(
@@ -446,6 +461,7 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
       ),
     );
   }
+
   Widget _buildStatusRow(String label, dynamic value) {
     Color valueColor = Colors.black87;
     String displayValue = value.toString();
@@ -482,9 +498,3 @@ class _NotificationDebugScreenState extends State<NotificationDebugScreen> {
     );
   }
 }
-
-
-
- Again
-
-

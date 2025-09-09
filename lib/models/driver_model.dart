@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class DriverModel {
   final String id;
   final String name;
@@ -60,15 +61,16 @@ class DriverModel {
       'isActive': isActive,
       'currentLat': currentLat,
       'currentLng': currentLng,
-      'lastLocationUpdate': lastLocationUpdate != null 
-          ? Timestamp.fromDate(lastLocationUpdate!) 
+      'lastLocationUpdate': lastLocationUpdate != null
+          ? Timestamp.fromDate(lastLocationUpdate!)
           : null,
       'isOnDuty': isOnDuty,
-      'createdAt': createdAt != null 
-          ? Timestamp.fromDate(createdAt!) 
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
           : FieldValue.serverTimestamp(),
     };
   }
+
   DriverModel copyWith({
     String? name,
     String? email,
@@ -97,9 +99,3 @@ class DriverModel {
     );
   }
 }
-
-
-
- Again
-
-

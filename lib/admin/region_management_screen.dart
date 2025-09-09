@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widget/snackbar.dart';
 import '../../utils/app_colors.dart';
+
 class RegionManagementScreen extends StatefulWidget {
   const RegionManagementScreen({super.key});
   @override
   _RegionManagementScreenState createState() => _RegionManagementScreenState();
 }
+
 class _RegionManagementScreenState extends State<RegionManagementScreen> {
   final _regions = FirebaseFirestore.instance
       .collection('regions')
@@ -368,6 +370,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       ),
     );
   }
+
   void _showInfoDialog() {
     showDialog(
       context: context,
@@ -404,6 +407,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       ),
     );
   }
+
   void _showRegionDetails(String regionId, Map<String, dynamic> data) {
     showDialog(
       context: context,
@@ -436,6 +440,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       ),
     );
   }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -458,6 +463,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       ),
     );
   }
+
   void _editRegion(String regionId, Map<String, dynamic> data) {
     final nameCtrl = TextEditingController(text: data['name']);
     showDialog(
@@ -506,6 +512,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       ),
     );
   }
+
   void _deleteRegion(String regionId, String? regionName) {
     showDialog(
       context: context,
@@ -542,6 +549,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       ),
     );
   }
+
   String _formatDate(Timestamp timestamp) {
     final date = timestamp.toDate();
     final now = DateTime.now();
@@ -556,6 +564,7 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
       return '${date.day}/${date.month}/${date.year}';
     }
   }
+
   void _showAddRegionDialog(BuildContext context) {
     final nameCtrl = TextEditingController();
     showDialog(
@@ -649,9 +658,3 @@ class _RegionManagementScreenState extends State<RegionManagementScreen> {
     );
   }
 }
-
-
-
- Again
-
-

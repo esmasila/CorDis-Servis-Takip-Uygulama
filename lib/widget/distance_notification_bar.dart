@@ -253,6 +253,5 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar> {
 
 
 
- Again
 
 

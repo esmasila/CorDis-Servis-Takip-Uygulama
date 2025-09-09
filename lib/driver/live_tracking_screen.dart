@@ -9,12 +9,14 @@ import '../service/user_session.dart';
 import '../service/location_service.dart';
 import '../service/background_location_service.dart';
 import '../service/simple_stop_service.dart';
+
 class LiveTrackingScreen extends StatefulWidget {
   final String? driverId;
   const LiveTrackingScreen({super.key, this.driverId});
   @override
   State<LiveTrackingScreen> createState() => _LiveTrackingScreenState();
 }
+
 class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
@@ -33,15 +35,18 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     _loadInitialData();
     _checkTrackingStatus();
   }
+
   Future<void> _initializeBackgroundService() async {
     await BackgroundLocationService.initializeService();
   }
+
   Future<void> _checkTrackingStatus() async {
     setState(() {
       _isTracking = UserSession.isLocationSharing;
     });
     print('Live tracking ekranı konum durumu: $_isTracking');
   }
+
   Future<void> _toggleLocationSharing() async {
     if (_isLoading) return;
     setState(() {
@@ -74,6 +79,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       }
     }
   }
+
   Future<void> _loadInitialData() async {
     setState(() {
       _isLoading = true;
@@ -97,6 +103,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       }
     }
   }
+
   Future<void> _loadRegionInfo() async {
     if (UserSession.regionId != null) {
       final regionDoc = await FirebaseFirestore.instance
@@ -110,6 +117,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       }
     }
   }
+
   Future<void> _getCurrentLocation() async {
     try {
       final position = await Geolocator.getCurrentPosition(
@@ -126,6 +134,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       print('Konum alınırken hata: $e');
     }
   }
+
   Future<void> _loadPassengerStops() async {
     try {
       print(
@@ -177,6 +186,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       print('Yolcu durakları yüklenirken hata: $e');
     }
   }
+
   void _updateDriverMarker(Position position) {
     final driverMarker = Marker(
       markerId: const MarkerId('driver'),
@@ -196,6 +206,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       _drawRouteToStops();
     }
   }
+
   void _listenToLocationUpdates() {
     Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
@@ -212,6 +223,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       }
     });
   }
+
   Future<void> _updateLocationInFirestore(Position position) async {
     try {
       final driverId =
@@ -240,6 +252,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       print('Konum güncellenirken hata: $e');
     }
   }
+
   Future<void> _toggleTracking() async {
     if (_isTracking) {
       await _stopTracking();
@@ -247,6 +260,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       await _startTracking();
     }
   }
+
   Future<void> _startTracking() async {
     setState(() {
       _isLoading = true;
@@ -275,6 +289,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       });
     }
   }
+
   Future<void> _stopTracking() async {
     setState(() {
       _isLoading = true;
@@ -308,6 +323,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       });
     }
   }
+
   void _moveCamera(LatLng position) {
     _mapController?.animateCamera(
       CameraUpdate.newCameraPosition(
@@ -318,6 +334,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       ),
     );
   }
+
   Future<void> _drawRouteToStops() async {
     if (_currentPosition == null || _passengerStops.isEmpty) return;
     try {
@@ -339,6 +356,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       print('Rota çizimi hatası: $e');
     }
   }
+
   double _calculateDistance(LatLng point1, LatLng point2) {
     return Geolocator.distanceBetween(
       point1.latitude,
@@ -347,13 +365,15 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       point2.longitude,
     );
   }
+
   Future<void> _drawRoute(LatLng start, LatLng end) async {
     try {
       const String apiKey = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-    defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
-  );
-      final String url = 'https://maps.googleapis.com/maps/api/directions/json?origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&key=$apiKey';
+        'GOOGLE_MAPS_API_KEY',
+        defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
+      );
+      final String url =
+          'https://maps.googleapis.com/maps/api/directions/json?origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&key=$apiKey';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -380,6 +400,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       _drawSimpleRoute(start, end);
     }
   }
+
   void _drawSimpleRoute(LatLng start, LatLng end) {
     setState(() {
       _polylines.clear();
@@ -394,6 +415,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       );
     });
   }
+
   List<LatLng> _decodePolyline(String encoded) {
     List<LatLng> polylineCoordinates = [];
     int index = 0;
@@ -424,6 +446,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     }
     return polylineCoordinates;
   }
+
   void _toggleRoute() {
     setState(() {
       _showRoute = !_showRoute;
@@ -434,6 +457,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       }
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -586,6 +610,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       ),
     );
   }
+
   Widget _buildStatCard(String title, String value, IconData icon) {
     return Column(
       children: [
@@ -608,15 +633,10 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       ],
     );
   }
+
   @override
   void dispose() {
     _mapController?.dispose();
     super.dispose();
   }
 }
-
-
-
- Again
-
-

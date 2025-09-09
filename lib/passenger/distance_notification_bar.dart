@@ -5,6 +5,7 @@ import '../service/location_service.dart';
 import '../service/notification_service.dart';
 import '../service/user_session.dart';
 import '../service/firestore_service.dart';
+
 class DistanceNotificationBar extends StatefulWidget {
   final String? driverId;
   final double alertDistance;
@@ -16,8 +17,10 @@ class DistanceNotificationBar extends StatefulWidget {
     this.onDriverApproaching,
   });
   @override
-  State<DistanceNotificationBar> createState() => _DistanceNotificationBarState();
+  State<DistanceNotificationBar> createState() =>
+      _DistanceNotificationBarState();
 }
+
 class _DistanceNotificationBarState extends State<DistanceNotificationBar>
     with TickerProviderStateMixin {
   final LocationService _locationService = LocationService();
@@ -41,6 +44,7 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar>
     _startDistanceMonitoring();
     _loadDriverInfo();
   }
+
   void _initializeAnimations() {
     _pulseController = AnimationController(
       duration: const Duration(seconds: 2),
@@ -65,6 +69,7 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar>
       curve: Curves.easeOut,
     ));
   }
+
   @override
   void dispose() {
     _distanceCheckTimer?.cancel();
@@ -72,6 +77,7 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar>
     _slideController.dispose();
     super.dispose();
   }
+
   Future<void> _loadDriverInfo() async {
     if (widget.driverId == null) return;
     try {
@@ -85,18 +91,21 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar>
       print('Şoför bilgisi yükleme hatası: $e');
     }
   }
+
   void _startDistanceMonitoring() {
     _distanceCheckTimer = Timer.periodic(
       const Duration(seconds: 10),
       (_) => _checkDriverDistance(),
     );
   }
+
   Future<void> _checkDriverDistance() async {
     if (widget.driverId == null) return;
     try {
       _passengerPosition = await _locationService.getCurrentPosition();
       if (_passengerPosition == null) return;
-      final driverData = await FirestoreService.getDriverLocation(widget.driverId!);
+      final driverData =
+          await FirestoreService.getDriverLocation(widget.driverId!);
       if (driverData == null) return;
       final driverLat = driverData['latitude']?.toDouble();
       final driverLng = driverData['longitude']?.toDouble();
@@ -132,11 +141,13 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar>
       print('Mesafe kontrolü hatası: $e');
     }
   }
+
   int _calculateEstimatedArrival(double distance) {
     const averageSpeed = 8.33;
     final timeInSeconds = distance / averageSpeed;
     return (timeInSeconds / 60).ceil();
   }
+
   void _handleDriverApproaching() {
     setState(() {
       _isDriverApproaching = true;
@@ -146,21 +157,25 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar>
     widget.onDriverApproaching?.call();
     _notificationService.showLocalNotification(
       title: 'Servis Yaklaştı!',
-      body: 'Şoförünüz ${_currentDistance?.toInt() ?? 0}m mesafede. Hazır olun!',
+      body:
+          'Şoförünüz ${_currentDistance?.toInt() ?? 0}m mesafede. Hazır olun!',
     );
   }
+
   void _handleDriverMovingAway() {
     setState(() {
       _isDriverApproaching = false;
     });
     _slideController.reverse();
   }
+
   void _dismissNotification() {
     _slideController.reverse();
     setState(() {
       _isDriverApproaching = false;
     });
   }
+
   @override
   Widget build(BuildContext context) {
     if (!_isDriverApproaching || _currentDistance == null) {
@@ -194,8 +209,7 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar>
           borderRadius: BorderRadius.circular(16),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: () {
-            },
+            onTap: () {},
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -291,9 +305,3 @@ class _DistanceNotificationBarState extends State<DistanceNotificationBar>
     );
   }
 }
-
-
-
- Again
-
-

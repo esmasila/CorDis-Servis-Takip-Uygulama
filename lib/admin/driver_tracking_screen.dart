@@ -1160,9 +1160,3 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     );
   }
 }
-
-
-
- Again
-
-

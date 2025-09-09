@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class StopModel {
   final String id;
   final String driverId;
@@ -28,6 +29,7 @@ class StopModel {
     }
     return null;
   }
+
   int get passengerCount => passengerIds?.length ?? 1;
   StopModel({
     required this.id,
@@ -73,7 +75,9 @@ class StopModel {
       regionId: data['regionId'],
       serviceType: data['serviceType'],
       metadata: data['metadata'] as Map<String, dynamic>?,
-      passengerIds: data['passengerIds'] != null ? List<String>.from(data['passengerIds']) : null,
+      passengerIds: data['passengerIds'] != null
+          ? List<String>.from(data['passengerIds'])
+          : null,
     );
   }
   factory StopModel.fromMap(Map<String, dynamic> map, String id) {
@@ -85,27 +89,33 @@ class StopModel {
       address: map['address'] ?? '',
       lat: (map['lat'] ?? 0.0).toDouble(),
       lng: (map['lng'] ?? 0.0).toDouble(),
-      date: map['date'] is Timestamp 
-          ? (map['date'] as Timestamp).toDate() 
+      date: map['date'] is Timestamp
+          ? (map['date'] as Timestamp).toDate()
           : DateTime.parse(map['date'] ?? DateTime.now().toIso8601String()),
       order: map['order'] ?? 0,
       isCompleted: map['isCompleted'] ?? false,
       status: map['status'] ?? 'pending',
-      completedAt: map['completedAt'] is Timestamp 
-          ? (map['completedAt'] as Timestamp).toDate() 
-          : (map['completedAt'] != null ? DateTime.parse(map['completedAt']) : null),
+      completedAt: map['completedAt'] is Timestamp
+          ? (map['completedAt'] as Timestamp).toDate()
+          : (map['completedAt'] != null
+              ? DateTime.parse(map['completedAt'])
+              : null),
       note: map['note'],
-      createdAt: map['createdAt'] is Timestamp 
-          ? (map['createdAt'] as Timestamp).toDate() 
-          : DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: map['updatedAt'] is Timestamp 
-          ? (map['updatedAt'] as Timestamp).toDate() 
-          : DateTime.parse(map['updatedAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.parse(
+              map['createdAt'] ?? DateTime.now().toIso8601String()),
+      updatedAt: map['updatedAt'] is Timestamp
+          ? (map['updatedAt'] as Timestamp).toDate()
+          : DateTime.parse(
+              map['updatedAt'] ?? DateTime.now().toIso8601String()),
       phoneNumber: map['phoneNumber'],
       regionId: map['regionId'],
       serviceType: map['serviceType'],
       metadata: map['metadata'] as Map<String, dynamic>?,
-      passengerIds: map['passengerIds'] != null ? List<String>.from(map['passengerIds']) : null,
+      passengerIds: map['passengerIds'] != null
+          ? List<String>.from(map['passengerIds'])
+          : null,
     );
   }
   Map<String, dynamic> toMap() {
@@ -120,7 +130,8 @@ class StopModel {
       'order': order,
       'isCompleted': isCompleted,
       'status': status,
-      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'completedAt':
+          completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'note': note,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -131,6 +142,7 @@ class StopModel {
       'passengerIds': passengerIds,
     };
   }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -155,6 +167,7 @@ class StopModel {
       'passengerIds': passengerIds,
     };
   }
+
   factory StopModel.fromJson(Map<String, dynamic> json) {
     return StopModel(
       id: json['id'] ?? '',
@@ -168,15 +181,21 @@ class StopModel {
       order: json['order'] ?? 0,
       isCompleted: json['isCompleted'] ?? false,
       status: json['status'] ?? 'pending',
-      completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
+      completedAt: json['completedAt'] != null
+          ? DateTime.parse(json['completedAt'])
+          : null,
       note: json['note'],
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
+      createdAt:
+          DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      updatedAt:
+          DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
       phoneNumber: json['phoneNumber'],
       regionId: json['regionId'],
       serviceType: json['serviceType'],
       metadata: json['metadata'] as Map<String, dynamic>?,
-      passengerIds: json['passengerIds'] != null ? List<String>.from(json['passengerIds']) : null,
+      passengerIds: json['passengerIds'] != null
+          ? List<String>.from(json['passengerIds'])
+          : null,
     );
   }
   StopModel copyWith({
@@ -224,17 +243,20 @@ class StopModel {
       passengerIds: passengerIds ?? this.passengerIds,
     );
   }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is StopModel && other.id == id;
   }
+
   @override
   int get hashCode => id.hashCode;
   @override
   String toString() {
     return 'StopModel(id: $id, passengerName: $passengerName, address: $address, isCompleted: $isCompleted, status: $status)';
   }
+
   bool get isPending => status == 'pending';
   bool get isInProgress => status == 'in_progress';
   bool get isSkipped => status == 'skipped';
@@ -242,35 +264,33 @@ class StopModel {
   bool get isEveningService => serviceType == 'evening';
   bool get isToday {
     final now = DateTime.now();
-    return date.year == now.year && 
-           date.month == now.month && 
-           date.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
+
   bool get isPast {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final stopDate = DateTime(date.year, date.month, date.day);
     return stopDate.isBefore(today);
   }
+
   bool get isFuture {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final stopDate = DateTime(date.year, date.month, date.day);
     return stopDate.isAfter(today);
   }
+
   Duration? get completionDuration {
     if (completedAt == null) return null;
     return completedAt!.difference(date);
   }
+
   int get priority {
     if (isCompleted) return 1000 + order;
     if (isInProgress) return order;
     return 100 + order;
   }
 }
-
-
-
- Again
-
-

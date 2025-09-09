@@ -8,6 +8,7 @@ import '../models/permission_model.dart';
 import 'stops_screen.dart';
 import '../widget/top_notification.dart';
 import '../utils/app_colors.dart';
+
 class HomeScreen extends StatefulWidget {
   final String driverId;
   final String vehiclePlate;
@@ -21,6 +22,7 @@ class HomeScreen extends StatefulWidget {
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
+
 class _HomeScreenState extends State<HomeScreen> {
   bool _isOnDuty = false;
   bool _isLocationSharing = false;
@@ -33,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkLocationSharingStatus();
     _setupLocationSharingListener();
   }
+
   String _getCleanRegionName(String? regionName) {
     if (regionName == null || regionName.isEmpty) return 'Atanmamış';
     if (!regionName.contains('{') && !regionName.contains('"')) {
@@ -66,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
     return 'Bölge Bilgisi';
   }
+
   void _setupLocationSharingListener() {
     Timer.periodic(const Duration(seconds: 2), (timer) {
       if (!mounted) {
@@ -81,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
   }
+
   Future<void> _checkLocationSharingStatus() async {
     try {
       final isSharing = UserSession.isLocationSharing;
@@ -103,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print('Konum paylaşım durumu kontrol hatası: $e');
     }
   }
+
   Future<void> _toggleLocationSharing() async {
     try {
       if (_isLocationSharing) {
@@ -126,6 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
   }
+
   Future<void> _stopLocationSharing() async {
     try {
       print('🛑 Ana sayfadan manuel konum paylaşımı durdurma başlatıldı...');
@@ -152,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
       rethrow;
     }
   }
+
   Future<void> _startLocationSharing() async {
     try {
       print('Ana sayfadan konum paylaşımı başlatılıyor...');
@@ -176,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
       rethrow;
     }
   }
+
   Future<void> _loadRegionName() async {
     try {
       final regionDoc = await FirebaseFirestore.instance
@@ -195,6 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
+
   Future<void> _loadDriverStatus() async {
     try {
       final doc = await FirebaseFirestore.instance
@@ -210,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print('Şoför durumu yüklenirken hata: $e');
     }
   }
+
   Future<void> _toggleDutyStatus() async {
     try {
       final newStatus = !_isOnDuty;
@@ -238,6 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
   }
+
   Future<Map<String, dynamic>?> _getDriverInfo() async {
     final doc = await FirebaseFirestore.instance
         .collection('drivers')
@@ -245,6 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .get();
     return doc.data();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -314,10 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 16),
                         _buildInfoRow('Telefon', driverData['phone'] ?? 'Yok'),
                         _buildInfoRow('Plaka', widget.vehiclePlate),
-                        _buildInfoRow(
-                            'Bölge',
-                            _regionName ??
-                                'Yükleniyor...'),
+                        _buildInfoRow('Bölge', _regionName ?? 'Yükleniyor...'),
                       ],
                     ),
                   ),
@@ -646,6 +656,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -661,6 +672,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   IconData _getPermissionIcon(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -675,6 +687,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Icons.beach_access;
     }
   }
+
   Color _getPermissionColor(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -689,6 +702,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Colors.green;
     }
   }
+
   String _getPermissionTypeText(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -705,6 +719,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return 'Tatil';
     }
   }
+
   String _formatPermissionDate(PermissionModel permission) {
     if (permission.type == PermissionType.vacation) {
       return '${permission.startDate.day}/${permission.startDate.month} - ${permission.endDate!.day}/${permission.endDate!.month}';
@@ -713,9 +728,3 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 }
-
-
-
- Again
-
-

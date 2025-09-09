@@ -5,11 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
 class ServiceTracking extends StatefulWidget {
   const ServiceTracking({super.key});
   @override
   State<ServiceTracking> createState() => _ServiceTrackingState();
 }
+
 class _ServiceTrackingState extends State<ServiceTracking> {
   final Set<Marker> _markers = {};
   final Set<Polyline> _polylines = {};
@@ -30,6 +32,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
     _getCurrentLocation();
     _loadPassengerData();
   }
+
   Future<void> _getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -61,6 +64,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       print('Konum alma hatası: $e');
     }
   }
+
   void _updateUserLocationMarker() {
     if (_userCurrentLocation != null) {
       _markers
@@ -79,6 +83,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       );
     }
   }
+
   Future<void> _loadPassengerData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -119,6 +124,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       });
     }
   }
+
   Future<void> _loadDriverInfo() async {
     try {
       if (_driverId == null) return;
@@ -137,6 +143,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       print('Şoför bilgisi yükleme hatası: $e');
     }
   }
+
   Future<void> _loadRegionCenter() async {
     try {
       if (_regionId == null) return;
@@ -166,6 +173,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       print('Bölge merkezi yükleme hatası: $e');
     }
   }
+
   void _listenToDriverLocation() {
     if (_driverId == null) return;
     print('Şoför konumu dinleniyor: $_driverId');
@@ -239,6 +247,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       });
     });
   }
+
   void _fitBothLocations(LatLng driverLocation) {
     if (_userCurrentLocation == null || _mapController == null) return;
     double minLat = _userCurrentLocation!.latitude < driverLocation.latitude
@@ -264,13 +273,15 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       ),
     );
   }
+
   Future<void> _drawRoute(LatLng start, LatLng end) async {
     try {
       const String apiKey = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-    defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
-  );
-      final String url = 'https://maps.googleapis.com/maps/api/directions/json?origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&key=$apiKey';
+        'GOOGLE_MAPS_API_KEY',
+        defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
+      );
+      final String url =
+          'https://maps.googleapis.com/maps/api/directions/json?origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&key=$apiKey';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -297,6 +308,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       _drawSimpleRoute(start, end);
     }
   }
+
   void _drawSimpleRoute(LatLng start, LatLng end) {
     setState(() {
       _polylines.clear();
@@ -311,6 +323,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       );
     });
   }
+
   List<LatLng> _decodePolyline(String encoded) {
     List<LatLng> polylineCoordinates = [];
     int index = 0;
@@ -341,6 +354,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
     }
     return polylineCoordinates;
   }
+
   void _toggleRoute() {
     setState(() {
       _showRoute = !_showRoute;
@@ -352,6 +366,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       }
     });
   }
+
   Future<void> fetchETA() async {
     if (_driverId == null) return;
     try {
@@ -376,6 +391,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
       print('ETA alma hatası: $e');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -460,8 +476,7 @@ class _ServiceTrackingState extends State<ServiceTracking> {
           Expanded(
             child: GoogleMap(
               initialCameraPosition: CameraPosition(
-                target: _initialPosition ??
-                    const LatLng(39.92077, 32.85411),
+                target: _initialPosition ?? const LatLng(39.92077, 32.85411),
                 zoom: _initialPosition != null ? 15 : 6,
               ),
               markers: _markers,
@@ -510,9 +525,3 @@ class _ServiceTrackingState extends State<ServiceTracking> {
     );
   }
 }
-
-
-
- Again
-
-

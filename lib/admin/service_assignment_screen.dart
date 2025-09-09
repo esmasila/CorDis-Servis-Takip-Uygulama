@@ -767,7 +767,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
                       },
                     ),
                   ),
-
                   Container(
                     margin:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1104,9 +1103,3 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen> {
     );
   }
 }
-
-
-
- Again
-
-

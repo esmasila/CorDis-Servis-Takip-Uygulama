@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../widget/snackbar.dart';
 import 'firestore_service.dart';
+
 class NotificationManagementScreen extends StatefulWidget {
   const NotificationManagementScreen({super.key});
   @override
   State<NotificationManagementScreen> createState() =>
       _NotificationManagementScreenState();
 }
+
 class _NotificationManagementScreenState
     extends State<NotificationManagementScreen> {
   String? _selectedTargetRole;
@@ -206,6 +208,7 @@ class _NotificationManagementScreenState
       ),
     );
   }
+
   Stream<QuerySnapshot> _buildNotificationsStream() {
     Query query = FirebaseFirestore.instance.collection('notifications');
     if (_selectedTargetRole != null) {
@@ -217,6 +220,7 @@ class _NotificationManagementScreenState
     }
     return query.orderBy('createdAt', descending: true).snapshots();
   }
+
   String _getTargetText(Map<String, dynamic> notification) {
     final targetRole = notification['targetRole'];
     final userId = notification['userId'];
@@ -228,6 +232,7 @@ class _NotificationManagementScreenState
       return targetRole;
     }
   }
+
   String _formatTime(dynamic timestamp) {
     if (timestamp == null) return 'Bilinmeyen';
     try {
@@ -247,6 +252,7 @@ class _NotificationManagementScreenState
       return 'Geçersiz zaman';
     }
   }
+
   void _showSendNotificationDialog() {
     final titleController = TextEditingController();
     final messageController = TextEditingController();
@@ -400,6 +406,7 @@ class _NotificationManagementScreenState
       ),
     );
   }
+
   void _viewNotification(Map<String, dynamic> notification) {
     showDialog(
       context: context,
@@ -439,6 +446,7 @@ class _NotificationManagementScreenState
       ),
     );
   }
+
   void _deleteNotification(String notificationId) {
     showDialog(
       context: context,
@@ -474,9 +482,3 @@ class _NotificationManagementScreenState
     );
   }
 }
-
-
-
- Again
-
-

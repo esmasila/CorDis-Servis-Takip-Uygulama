@@ -4,11 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../service/user_session.dart';
 import '../utils/app_colors.dart';
 import '../service/theme_service.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
+
 class _ProfileScreenState extends State<ProfileScreen> {
   final user = FirebaseAuth.instance.currentUser!;
   Map<String, dynamic>? driverData;
@@ -22,6 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadDriverData();
   }
+
   Widget _buildInfoCard(String title, String value, IconData icon) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -95,6 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   String _getCleanRegionName(String? regionName) {
     if (regionName == null || regionName.isEmpty) return 'Atanmamış';
     if (!regionName.contains('{') && !regionName.contains('"')) {
@@ -128,6 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {}
     return 'Bölge Bilgisi';
   }
+
   Future<void> _loadDriverData() async {
     try {
       final doc = await FirebaseFirestore.instance
@@ -157,6 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
   Future<void> _saveProfileData() async {
     if (!mounted) return;
     setState(() {
@@ -206,6 +212,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -412,6 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Widget _buildModernInfoCard(
       String title, IconData icon, List<Widget> children) {
     return Container(
@@ -462,6 +470,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Widget _buildModernInfoRow(
       String label, String value, TextEditingController? controller) {
     return Padding(
@@ -513,6 +522,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Widget _buildActionButton(String text, Color color, VoidCallback onPressed) {
     return GestureDetector(
       onTap: onPressed,
@@ -542,6 +552,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Future<void> _logout() async {
     try {
       await FirebaseAuth.instance.signOut();
@@ -557,9 +568,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 }
-
-
-
- Again
-
-

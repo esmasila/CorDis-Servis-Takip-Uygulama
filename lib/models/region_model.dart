@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 class RegionModel {
   final String id;
   final String name;
@@ -39,6 +40,7 @@ class RegionModel {
       'passengerCount': passengerCount,
     };
   }
+
   RegionModel copyWith({
     String? name,
     String? description,
@@ -57,9 +59,3 @@ class RegionModel {
     );
   }
 }
-
-
-
- Again
-
-

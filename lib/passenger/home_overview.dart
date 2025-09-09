@@ -9,6 +9,7 @@ import '../view/login_screen.dart';
 import 'distance_alert.dart';
 import '../service/auto_stop_service.dart';
 import 'dart:math' as math;
+
 class HomeOverview extends StatelessWidget {
   const HomeOverview({super.key});
   Future<Map<String, dynamic>> loadUserData() async {
@@ -190,6 +191,7 @@ class HomeOverview extends StatelessWidget {
       return {'regionName': 'Yükleme Hatası', 'driverName': 'Yükleme Hatası'};
     }
   }
+
   Future<Map<String, dynamic>?> _getServiceStatus() async {
     try {
       return await EnhancedTrackingService.getServiceStatusForPassenger(
@@ -201,6 +203,7 @@ class HomeOverview extends StatelessWidget {
       return null;
     }
   }
+
   String _getCleanRegionName(String? regionName) {
     if (regionName == null || regionName.isEmpty) return 'Atanmamış';
     if (regionName.startsWith('{') && regionName.contains('"name"')) {
@@ -248,6 +251,7 @@ class HomeOverview extends StatelessWidget {
     }
     return regionName;
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -618,8 +622,7 @@ class HomeOverview extends StatelessWidget {
                               'Şoför ile iletişim',
                               Icons.message,
                               Color(0xFF6366F1),
-                              () {
-                              },
+                              () {},
                             ),
                           ),
                         ],
@@ -634,6 +637,7 @@ class HomeOverview extends StatelessWidget {
       ),
     );
   }
+
   Future<double?> _calculateEstimatedArrival(
       Map<String, dynamic> serviceStatus) async {
     try {
@@ -645,6 +649,7 @@ class HomeOverview extends StatelessWidget {
       return null;
     }
   }
+
   Widget _buildInfoRow(String label, String value, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -669,6 +674,7 @@ class HomeOverview extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildServiceInfoRow(
       String label, String value, IconData icon, Color color) {
     return Padding(
@@ -698,6 +704,7 @@ class HomeOverview extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildQuickActionCard(
     BuildContext context,
     String title,
@@ -754,9 +761,3 @@ class HomeOverview extends StatelessWidget {
     );
   }
 }
-
-
-
- Again
-
-

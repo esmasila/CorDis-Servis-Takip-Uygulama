@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
+
 class RouteHistoryService {
   static final Map<String, StreamSubscription> _trackingSubscriptions = {};
   static final Map<String, List<RouteHistoryEntry>> _cachedHistory = {};
@@ -43,6 +44,7 @@ class RouteHistoryService {
       rethrow;
     }
   }
+
   static void startRouteTracking(String driverId) {
     stopRouteTracking(driverId);
     print('Rota takibi başlatılıyor: $driverId');
@@ -61,11 +63,13 @@ class RouteHistoryService {
       }
     });
   }
+
   static void stopRouteTracking(String driverId) {
     _trackingSubscriptions[driverId]?.cancel();
     _trackingSubscriptions.remove(driverId);
     print('Rota takibi durduruldu: $driverId');
   }
+
   static Future<void> _checkNearbyStops(
     String driverId,
     LatLng driverLocation,
@@ -75,8 +79,7 @@ class RouteHistoryService {
           .collection('enhanced_stops')
           .where('driverId', isEqualTo: driverId)
           .where('isActive', isEqualTo: true)
-          .where('status', whereIn: ['pending', 'approaching'])
-          .get();
+          .where('status', whereIn: ['pending', 'approaching']).get();
       for (final stopDoc in stopsQuery.docs) {
         final stopData = stopDoc.data();
         final stopLocation = LatLng(
@@ -97,8 +100,7 @@ class RouteHistoryService {
             driverLocation,
             distance,
           );
-        }
-        else if (distance <= 100 && stopData['status'] != 'approaching') {
+        } else if (distance <= 100 && stopData['status'] != 'approaching') {
           await _updateStopStatus(stopDoc.id, 'approaching');
         }
       }
@@ -106,6 +108,7 @@ class RouteHistoryService {
       print('Yakın durak kontrolü hatası: $e');
     }
   }
+
   static Future<void> _handleStopApproach(
     String driverId,
     String stopId,
@@ -118,8 +121,9 @@ class RouteHistoryService {
           .collection('route_history')
           .where('driverId', isEqualTo: driverId)
           .where('stopId', isEqualTo: stopId)
-          .where('visitedAt', isGreaterThan: 
-              Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 1))))
+          .where('visitedAt',
+              isGreaterThan: Timestamp.fromDate(
+                  DateTime.now().subtract(const Duration(hours: 1))))
           .limit(1)
           .get();
       if (existingVisit.docs.isNotEmpty) {
@@ -145,6 +149,7 @@ class RouteHistoryService {
       print('Durak yaklaşma işleme hatası: $e');
     }
   }
+
   static Future<void> _updateStopStatus(
     String stopId,
     String status,
@@ -161,6 +166,7 @@ class RouteHistoryService {
       print('Durak durumu güncelleme hatası: $e');
     }
   }
+
   static Future<List<RouteHistoryEntry>> getRouteHistory({
     required String driverId,
     DateTime? startDate,
@@ -174,10 +180,12 @@ class RouteHistoryService {
           .orderBy('visitedAt', descending: true)
           .limit(limit);
       if (startDate != null) {
-        query = query.where('visitedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+        query = query.where('visitedAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
       }
       if (endDate != null) {
-        query = query.where('visitedAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+        query = query.where('visitedAt',
+            isLessThanOrEqualTo: Timestamp.fromDate(endDate));
       }
       final querySnapshot = await query.get();
       final history = querySnapshot.docs
@@ -190,6 +198,7 @@ class RouteHistoryService {
       return _cachedHistory[driverId] ?? [];
     }
   }
+
   static Future<List<RouteHistoryEntry>> getPassengerHistory({
     required String passengerId,
     DateTime? startDate,
@@ -203,10 +212,12 @@ class RouteHistoryService {
           .orderBy('visitedAt', descending: true)
           .limit(limit);
       if (startDate != null) {
-        query = query.where('visitedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+        query = query.where('visitedAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
       }
       if (endDate != null) {
-        query = query.where('visitedAt', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+        query = query.where('visitedAt',
+            isLessThanOrEqualTo: Timestamp.fromDate(endDate));
       }
       final querySnapshot = await query.get();
       return querySnapshot.docs
@@ -217,12 +228,14 @@ class RouteHistoryService {
       return [];
     }
   }
+
   static Future<RouteSummary> getDailySummary({
     required String driverId,
     DateTime? date,
   }) async {
     final targetDate = date ?? DateTime.now();
-    final startOfDay = DateTime(targetDate.year, targetDate.month, targetDate.day);
+    final startOfDay =
+        DateTime(targetDate.year, targetDate.month, targetDate.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
     try {
       final history = await getRouteHistory(
@@ -236,20 +249,23 @@ class RouteHistoryService {
       return RouteSummary.empty(targetDate);
     }
   }
+
   static Stream<List<RouteHistoryEntry>> getRealtimeRouteHistory(
     String driverId,
   ) {
     return FirebaseFirestore.instance
         .collection('route_history')
         .where('driverId', isEqualTo: driverId)
-        .where('visitedAt', isGreaterThan: 
-            Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 12))))
+        .where('visitedAt',
+            isGreaterThan: Timestamp.fromDate(
+                DateTime.now().subtract(const Duration(hours: 12))))
         .orderBy('visitedAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => RouteHistoryEntry.fromFirestore(doc))
             .toList());
   }
+
   static void _addToCache(String driverId, RouteHistoryEntry entry) {
     if (!_cachedHistory.containsKey(driverId)) {
       _cachedHistory[driverId] = [];
@@ -259,6 +275,7 @@ class RouteHistoryService {
       _cachedHistory[driverId] = _cachedHistory[driverId]!.take(100).toList();
     }
   }
+
   static Future<void> cleanupOldHistory() async {
     try {
       final cutoffDate = DateTime.now().subtract(const Duration(days: 30));
@@ -271,11 +288,13 @@ class RouteHistoryService {
         batch.delete(doc.reference);
       }
       await batch.commit();
-      print('Eski geçmiş verileri temizlendi: ${oldHistoryQuery.docs.length} kayıt');
+      print(
+          'Eski geçmiş verileri temizlendi: ${oldHistoryQuery.docs.length} kayıt');
     } catch (e) {
       print('Geçmiş veri temizleme hatası: $e');
     }
   }
+
   static Stream<List<Map<String, dynamic>>> getRouteHistoryStream(
     String passengerId,
   ) {
@@ -286,17 +305,18 @@ class RouteHistoryService {
         .limit(20)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
-          final data = doc.data();
-          return {
-            'id': doc.id,
-            'stopId': data['stopId'],
-            'visitedAt': data['visitedAt'],
-            'distanceFromStop': data['distanceFromStop'],
-            'additionalData': data['additionalData'] ?? {},
-            'status': 'completed',
-          };
-        }).toList());
+              final data = doc.data();
+              return {
+                'id': doc.id,
+                'stopId': data['stopId'],
+                'visitedAt': data['visitedAt'],
+                'distanceFromStop': data['distanceFromStop'],
+                'additionalData': data['additionalData'] ?? {},
+                'status': 'completed',
+              };
+            }).toList());
   }
+
   static void stopAllTracking() {
     for (final subscription in _trackingSubscriptions.values) {
       subscription.cancel();
@@ -305,6 +325,7 @@ class RouteHistoryService {
     _cachedHistory.clear();
   }
 }
+
 class RouteHistoryEntry {
   final String id;
   final String driverId;
@@ -333,11 +354,13 @@ class RouteHistoryEntry {
       'passengerId': passengerId,
       'visitedAt': Timestamp.fromDate(visitedAt),
       'stopLocation': GeoPoint(stopLocation.latitude, stopLocation.longitude),
-      'actualLocation': GeoPoint(actualLocation.latitude, actualLocation.longitude),
+      'actualLocation':
+          GeoPoint(actualLocation.latitude, actualLocation.longitude),
       'distanceFromStop': distanceFromStop,
       'additionalData': additionalData,
     };
   }
+
   factory RouteHistoryEntry.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final stopGeoPoint = data['stopLocation'] as GeoPoint;
@@ -377,11 +400,13 @@ class RouteHistoryEntry {
       additionalData: additionalData ?? this.additionalData,
     );
   }
+
   @override
   String toString() {
     return 'RouteHistoryEntry(id: $id, stopId: $stopId, visitedAt: $visitedAt)';
   }
 }
+
 class RouteSummary {
   final DateTime date;
   final int totalStops;
@@ -439,6 +464,7 @@ class RouteSummary {
     if (totalStops == 0) return 0.0;
     return visitedStops / totalStops;
   }
+
   String get formattedDistance {
     if (totalDistance < 1000) {
       return '${totalDistance.round()} m';
@@ -446,6 +472,7 @@ class RouteSummary {
       return '${(totalDistance / 1000).toStringAsFixed(1)} km';
     }
   }
+
   String get formattedTime {
     final hours = totalTime.inHours;
     final minutes = totalTime.inMinutes % 60;
@@ -455,14 +482,9 @@ class RouteSummary {
       return '${minutes}dk';
     }
   }
+
   @override
   String toString() {
     return 'RouteSummary(date: $date, stops: $visitedStops/$totalStops, distance: $formattedDistance)';
   }
 }
-
-
-
- Again
-
-

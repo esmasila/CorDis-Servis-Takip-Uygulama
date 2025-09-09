@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../service/stop_tracking_service.dart';
 import '../service/user_session.dart';
+
 class StopTrackingWidget extends StatefulWidget {
   final String driverId;
   const StopTrackingWidget({
@@ -12,6 +13,7 @@ class StopTrackingWidget extends StatefulWidget {
   @override
   State<StopTrackingWidget> createState() => _StopTrackingWidgetState();
 }
+
 class _StopTrackingWidgetState extends State<StopTrackingWidget> {
   List<Map<String, dynamic>> _todayVisits = [];
   Map<String, dynamic>? _currentStopVisit;
@@ -22,6 +24,7 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
     _loadTodayVisits();
     _listenToCurrentStopVisit();
   }
+
   Future<void> _loadTodayVisits() async {
     try {
       final visits = await StopTrackingService.getDailyStopReport(
@@ -42,6 +45,7 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
       }
     }
   }
+
   void _listenToCurrentStopVisit() {
     FirebaseFirestore.instance
         .collection('stop_visits')
@@ -57,14 +61,17 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
       }
     });
   }
+
   String _formatDuration(int seconds) {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
     return '${minutes}dk ${remainingSeconds}sn';
   }
+
   String _formatTime(DateTime time) {
     return DateFormat('HH:mm').format(time);
   }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'arrived':
@@ -75,6 +82,7 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
         return Colors.grey;
     }
   }
+
   Widget _buildCurrentStopCard() {
     if (_currentStopVisit == null) {
       return const Card(
@@ -151,6 +159,7 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
       ),
     );
   }
+
   Widget _buildTodayVisitsList() {
     if (_todayVisits.isEmpty) {
       return const Card(
@@ -240,6 +249,7 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
       ),
     );
   }
+
   Widget _buildStatisticsCard() {
     final completedVisits =
         _todayVisits.where((v) => v['status'] == 'completed').toList();
@@ -325,6 +335,7 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
       ),
     );
   }
+
   Widget _buildStatItem(
       String label, String value, IconData icon, Color color) {
     return Container(
@@ -357,6 +368,7 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -378,9 +390,3 @@ class _StopTrackingWidgetState extends State<StopTrackingWidget> {
     );
   }
 }
-
-
-
- Again
-
-

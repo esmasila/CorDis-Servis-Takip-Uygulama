@@ -4,11 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../service/proximity_notification_service.dart';
 import '../service/distance_notification_service.dart';
 import 'dart:async';
+
 class DistanceAlertScreen extends StatefulWidget {
   const DistanceAlertScreen({super.key});
   @override
   State<DistanceAlertScreen> createState() => _DistanceAlertScreenState();
 }
+
 class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
   double _selectedDistance = 500.0;
   bool _loading = true;
@@ -21,10 +23,12 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
     super.initState();
     _initializeScreen();
   }
+
   @override
   void dispose() {
     super.dispose();
   }
+
   Future<void> _initializeScreen() async {
     await ProximityNotificationService.initialize();
     await _loadDistance();
@@ -32,6 +36,7 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
     await _loadNotificationHistory();
     await _startProximityTracking();
   }
+
   Future<void> _loadDistance() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -57,6 +62,7 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
       }
     }
   }
+
   Future<void> _loadDriverInfo() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -83,6 +89,7 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
       print('Şoför bilgisi yükleme hatası: $e');
     }
   }
+
   Future<void> _loadNotificationHistory() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -94,6 +101,7 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
       print('Bildirim geçmişi yükleme hatası: $e');
     }
   }
+
   Future<void> _startProximityTracking() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -115,6 +123,7 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
       });
     }
   }
+
   Future<void> _saveDistance() async {
     setState(() => _loading = true);
     try {
@@ -164,6 +173,7 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -531,6 +541,7 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
             ),
     );
   }
+
   Widget _buildStatusItem(
       String title, String value, Color color, IconData icon) {
     return Container(
@@ -572,6 +583,7 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
       ),
     );
   }
+
   Widget _buildTipItem(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -586,9 +598,3 @@ class _DistanceAlertScreenState extends State<DistanceAlertScreen> {
     );
   }
 }
-
-
-
- Again
-
-

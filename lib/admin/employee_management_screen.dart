@@ -382,9 +382,3 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen>
     );
   }
 }
-
-
-
- Again
-
-

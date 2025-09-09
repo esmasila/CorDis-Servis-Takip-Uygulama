@@ -7,6 +7,7 @@ import '../models/message_model.dart';
 import '../utils/app_colors.dart';
 import '../service/notification_service.dart';
 import '../service/cache_service.dart';
+
 class MessagesScreen extends StatefulWidget {
   final String? driverId;
   final VoidCallback? onScreenOpen;
@@ -14,6 +15,7 @@ class MessagesScreen extends StatefulWidget {
   @override
   State<MessagesScreen> createState() => _MessagesScreenState();
 }
+
 class _MessagesScreenState extends State<MessagesScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -28,6 +30,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       widget.onScreenOpen?.call();
     });
   }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -35,6 +38,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     NotificationService.instance.setChatScreenOpen(false);
     super.dispose();
   }
+
   Future<void> _loadUserName() async {
     try {
       final doc = await FirebaseFirestore.instance
@@ -87,6 +91,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       }
     }
   }
+
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty || userName == null) return;
@@ -158,6 +163,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       }
     }
   }
+
   Future<void> _sendQuickMessage(String message) async {
     if (userName == null) return;
     print('🚀 Şoför hızlı mesaj gönderme işlemi başlatılıyor:');
@@ -227,6 +233,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       }
     }
   }
+
   Future<void> _debugSessionInfo() async {
     print('🐛 === DRIVER DEBUG SESSION INFO ===');
     print('- UserSession.regionId: ${UserSession.regionId ?? "null"}');
@@ -307,6 +314,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser!;
@@ -639,6 +647,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ),
     );
   }
+
   Widget _buildQuickMessageChip(String text, String message) {
     return GestureDetector(
       onTap: () => _sendQuickMessage(message),
@@ -663,6 +672,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ),
     );
   }
+
   Widget _buildDebugButton() {
     return GestureDetector(
       onTap: _debugSessionInfo,
@@ -687,6 +697,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ),
     );
   }
+
   Widget _buildModernMessageBubble(MessageModel message, bool isMe) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -755,6 +766,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ),
     );
   }
+
   Future<void> _showDeleteDialog(MessageModel message) async {
     final isMe = message.senderId == user.uid;
     if (!isMe) {
@@ -812,10 +824,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
       await _deleteMessage(message);
     }
   }
+
   Future<void> _deleteMessage(MessageModel message) async {
     try {
-      setState(() {
-      });
+      setState(() {});
       final error = await ChatService.deleteMessage(message.id);
       if (error != null) {
         if (mounted) {
@@ -850,6 +862,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       }
     }
   }
+
   String _formatTime(DateTime timestamp) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -862,9 +875,3 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }
   }
 }
-
-
-
- Again
-
-

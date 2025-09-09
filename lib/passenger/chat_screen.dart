@@ -6,12 +6,14 @@ import '../service/chat_service.dart';
 import '../models/message_model.dart';
 import '../utils/app_colors.dart';
 import '../service/notification_service.dart';
+
 class ChatScreen extends StatefulWidget {
   final VoidCallback? onScreenOpen;
   const ChatScreen({super.key, this.onScreenOpen});
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
+
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -31,6 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
       widget.onScreenOpen?.call();
     });
   }
+
   Future<void> _ensureRegionInSession() async {
     if (UserSession.regionId != null && UserSession.regionId!.isNotEmpty) {
       setState(() => _regionResolveError = null);
@@ -76,6 +79,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) setState(() => _resolvingRegion = false);
     }
   }
+
   Future<void> _ensureDriverIdInSession() async {
     if (UserSession.driverId != null && UserSession.driverId!.isNotEmpty) {
       print('✅ DriverId zaten mevcut: ${UserSession.driverId}');
@@ -93,6 +97,7 @@ class _ChatScreenState extends State<ChatScreen> {
       print('❌ DriverId bulma hatası: $e');
     }
   }
+
   Future<void> _loadUserName() async {
     try {
       final doc = await FirebaseFirestore.instance
@@ -112,6 +117,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
   }
+
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
@@ -193,6 +199,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
   }
+
   Future<void> _sendMissedAlert() async {
     String? effectiveDriverId = UserSession.driverId;
     if (effectiveDriverId == null || effectiveDriverId.isEmpty) {
@@ -260,6 +267,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
   }
+
   Future<String?> _findAndSetDriverId() async {
     try {
       print('🔍 _findAndSetDriverId başlatılıyor...');
@@ -398,6 +406,7 @@ class _ChatScreenState extends State<ChatScreen> {
       return null;
     }
   }
+
   Future<void> _sendQuickMessage(String message) async {
     print('Yolcu hızlı mesaj gönderme işlemi başlatılıyor:');
     print('- UserSession.regionId: ${UserSession.regionId}');
@@ -447,6 +456,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
   }
+
   Future<void> _checkDriverFCMStatus() async {
     if (UserSession.regionId == null || UserSession.regionId!.isEmpty) {
       if (mounted) {
@@ -534,6 +544,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
   }
+
   Future<void> _debugSessionInfo() async {
     print('🐛 === DEBUG SESSION INFO ===');
     print('- UserSession.regionId: ${UserSession.regionId ?? "null"}');
@@ -594,6 +605,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -738,8 +750,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 : StreamBuilder<List<MessageModel>>(
                     stream: ChatService.getRegionMessages(
                       UserSession.regionId!,
-                      UserSession
-                          .driverId,
+                      UserSession.driverId,
                     ),
                     builder: (ctx, snapshot) {
                       print('Yolcu StreamBuilder durumu:');
@@ -840,8 +851,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       });
                       return ListView.builder(
                         controller: _scrollController,
-                        reverse:
-                            false,
+                        reverse: false,
                         padding: const EdgeInsets.all(16),
                         itemCount: messages.length,
                         itemBuilder: (ctx, i) {
@@ -974,8 +984,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                  ],
+                  children: [],
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1035,6 +1044,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
@@ -1048,6 +1058,7 @@ class _ChatScreenState extends State<ChatScreen> {
       return 'Şimdi';
     }
   }
+
   Future<void> _showDeleteDialog(MessageModel message) async {
     final isMe = message.senderId == user.uid;
     if (!isMe) {
@@ -1105,10 +1116,10 @@ class _ChatScreenState extends State<ChatScreen> {
       await _deleteMessage(message);
     }
   }
+
   Future<void> _deleteMessage(MessageModel message) async {
     try {
-      setState(() {
-      });
+      setState(() {});
       final error = await ChatService.deleteMessage(message.id);
       if (error != null) {
         if (mounted) {
@@ -1143,6 +1154,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
   }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -1151,6 +1163,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 }
+
 class _QuickMessageButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -1185,9 +1198,3 @@ class _QuickMessageButton extends StatelessWidget {
     );
   }
 }
-
-
-
- Again
-
-

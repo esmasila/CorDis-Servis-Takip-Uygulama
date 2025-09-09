@@ -4,12 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/stop_model.dart';
 import 'route_optimization_service.dart';
+
 class RouteService {
   static final RouteService _instance = RouteService._internal();
   factory RouteService() => _instance;
   RouteService._internal();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final RouteOptimizationService _optimizationService = RouteOptimizationService();
+  final RouteOptimizationService _optimizationService =
+      RouteOptimizationService();
   Future<String?> createRoute({
     required String driverId,
     required Position startPosition,
@@ -17,7 +19,8 @@ class RouteService {
     String? regionId,
   }) async {
     try {
-      final optimizedStops = await _optimizationService.optimizeRouteFromCurrentLocation(
+      final optimizedStops =
+          await _optimizationService.optimizeRouteFromCurrentLocation(
         startPosition,
         stops,
       );
@@ -28,16 +31,18 @@ class RouteService {
           'lat': startPosition.latitude,
           'lng': startPosition.longitude,
         },
-        'stops': optimizedStops.map((stop) => {
-          'id': stop.id,
-          'name': stop.name,
-          'address': stop.address,
-          'lat': stop.lat,
-          'lng': stop.lng,
-          'passengerCount': stop.passengerCount,
-          'isCompleted': false,
-          'completedAt': null,
-        }).toList(),
+        'stops': optimizedStops
+            .map((stop) => {
+                  'id': stop.id,
+                  'name': stop.name,
+                  'address': stop.address,
+                  'lat': stop.lat,
+                  'lng': stop.lng,
+                  'passengerCount': stop.passengerCount,
+                  'isCompleted': false,
+                  'completedAt': null,
+                })
+            .toList(),
         'status': 'active',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -51,6 +56,7 @@ class RouteService {
       return null;
     }
   }
+
   Future<String?> createRouteLog({
     required String routeId,
     required String driverId,
@@ -76,6 +82,7 @@ class RouteService {
       return null;
     }
   }
+
   Future<bool> completeStop({
     required String routeId,
     required String stopId,
@@ -96,7 +103,8 @@ class RouteService {
           break;
         }
       }
-      final completedCount = stops.where((stop) => stop['isCompleted'] == true).length;
+      final completedCount =
+          stops.where((stop) => stop['isCompleted'] == true).length;
       final totalStops = stops.length;
       String routeStatus = 'active';
       if (completedCount == totalStops) {
@@ -108,7 +116,8 @@ class RouteService {
         'completedStops': completedCount,
         'totalStops': totalStops,
         'updatedAt': FieldValue.serverTimestamp(),
-        if (routeStatus == 'completed') 'completedAt': FieldValue.serverTimestamp(),
+        if (routeStatus == 'completed')
+          'completedAt': FieldValue.serverTimestamp(),
       });
       await _firestore.collection('stop_logs').add({
         'routeId': routeId,
@@ -127,6 +136,7 @@ class RouteService {
       return false;
     }
   }
+
   Future<Map<String, dynamic>?> getNextIncompleteStop(String routeId) async {
     try {
       final routeDoc = await _firestore.collection('routes').doc(routeId).get();
@@ -144,6 +154,7 @@ class RouteService {
       return null;
     }
   }
+
   Future<List<Map<String, dynamic>>> getIncompleteStops(String routeId) async {
     try {
       final routeDoc = await _firestore.collection('routes').doc(routeId).get();
@@ -156,6 +167,7 @@ class RouteService {
       return [];
     }
   }
+
   Future<void> _createStopLog({
     required String routeId,
     required String stopId,
@@ -178,6 +190,7 @@ class RouteService {
       print('Stop log oluşturma hatası: $e');
     }
   }
+
   Future<Map<String, dynamic>?> getActiveRoute(String driverId) async {
     try {
       final querySnapshot = await _firestore
@@ -200,6 +213,7 @@ class RouteService {
       return null;
     }
   }
+
   Future<bool> completeRoute({
     required String routeId,
     Position? endLocation,
@@ -223,6 +237,7 @@ class RouteService {
       return false;
     }
   }
+
   Future<bool> cancelRoute(String routeId) async {
     try {
       await _firestore.collection('routes').doc(routeId).update({
@@ -236,6 +251,7 @@ class RouteService {
       return false;
     }
   }
+
   Stream<QuerySnapshot> getRouteHistory(String driverId) {
     return _firestore
         .collection('routes')
@@ -243,6 +259,7 @@ class RouteService {
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
+
   Stream<QuerySnapshot> getStopLogs(String routeId) {
     return _firestore
         .collection('stop_logs')
@@ -251,9 +268,3 @@ class RouteService {
         .snapshots();
   }
 }
-
-
-
- Again
-
-

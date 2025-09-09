@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 class DirectionsModel {
   final LatLngBounds sinirlar;
   final List<PointLatLng> polylineNoktalari;
@@ -70,6 +71,7 @@ class DirectionsModel {
   String toString() {
     return 'DirectionsModel(mesafe: $toplamMesafe, sure: $toplamSure, nokta_sayisi: ${polylineNoktalari.length})';
   }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -78,6 +80,7 @@ class DirectionsModel {
         other.toplamSure == toplamSure &&
         listEquals(other.polylineNoktalari, polylineNoktalari);
   }
+
   @override
   int get hashCode => Object.hash(
         toplamMesafe,
@@ -85,9 +88,3 @@ class DirectionsModel {
         polylineNoktalari.length,
       );
 }
-
-
-
- Again
-
-

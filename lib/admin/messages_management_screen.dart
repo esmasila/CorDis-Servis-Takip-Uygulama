@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../service/chat_service.dart';
 import '../models/message_model.dart';
+
 class MessagesManagementScreen extends StatefulWidget {
   const MessagesManagementScreen({super.key});
   @override
-  State<MessagesManagementScreen> createState() => _MessagesManagementScreenState();
+  State<MessagesManagementScreen> createState() =>
+      _MessagesManagementScreenState();
 }
+
 class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
   String? _selectedRegion;
   String? _selectedRegionId;
@@ -16,6 +19,7 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
     super.initState();
     _loadRegions();
   }
+
   Future<void> _loadRegions() async {
     try {
       print('[MessagesManagement] Bölgeler yükleniyor...');
@@ -24,12 +28,12 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
           .where('isActive', isEqualTo: true)
           .get();
       if (snapshot.docs.isEmpty) {
-        print('[MessagesManagement] Aktif bölge bulunamadı, tüm bölgeler getiriliyor...');
-        snapshot = await FirebaseFirestore.instance
-            .collection('regions')
-            .get();
+        print(
+            '[MessagesManagement] Aktif bölge bulunamadı, tüm bölgeler getiriliyor...');
+        snapshot = await FirebaseFirestore.instance.collection('regions').get();
       }
-      print('[MessagesManagement] Bulunan bölge sayısı: ${snapshot.docs.length}');
+      print(
+          '[MessagesManagement] Bulunan bölge sayısı: ${snapshot.docs.length}');
       if (mounted) {
         setState(() {
           _regions = snapshot.docs.map((doc) {
@@ -44,7 +48,8 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
           if (_regions.isNotEmpty) {
             _selectedRegion = _regions.first['name'];
             _selectedRegionId = _regions.first['id'];
-            print('[MessagesManagement] Seçilen bölge: $_selectedRegion (ID: $_selectedRegionId)');
+            print(
+                '[MessagesManagement] Seçilen bölge: $_selectedRegion (ID: $_selectedRegionId)');
           } else {
             print('[MessagesManagement] Hiç bölge bulunamadı');
           }
@@ -62,6 +67,7 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -195,12 +201,14 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
                     ),
                   )
                 : StreamBuilder<List<MessageModel>>(
-                    stream: ChatService.getMessagesForRegion(_selectedRegionId!),
+                    stream:
+                        ChatService.getMessagesForRegion(_selectedRegionId!),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.green),
                           ),
                         );
                       }
@@ -291,7 +299,8 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: _getRoleColor(message.senderRole).withOpacity(0.3),
+                                      color: _getRoleColor(message.senderRole)
+                                          .withOpacity(0.3),
                                       spreadRadius: 1,
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
@@ -392,7 +401,8 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
                                     value: 'delete',
                                     child: Row(
                                       children: [
-                                        Icon(Icons.delete, color: Colors.red, size: 20),
+                                        Icon(Icons.delete,
+                                            color: Colors.red, size: 20),
                                         SizedBox(width: 8),
                                         Text('Mesajı Sil'),
                                       ],
@@ -411,12 +421,14 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
       ),
     );
   }
+
   void _showDeleteConfirmation(MessageModel message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Mesajı Sil'),
-        content: Text('${message.senderName} tarafından gönderilen mesajı silmek istediğinizden emin misiniz?'),
+        content: Text(
+            '${message.senderName} tarafından gönderilen mesajı silmek istediğinizden emin misiniz?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -437,6 +449,7 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
       ),
     );
   }
+
   Color _getRoleColor(String role) {
     switch (role.toLowerCase()) {
       case 'admin':
@@ -451,6 +464,7 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
         return Colors.grey.shade600;
     }
   }
+
   IconData _getRoleIcon(String role) {
     switch (role.toLowerCase()) {
       case 'admin':
@@ -465,6 +479,7 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
         return Icons.person;
     }
   }
+
   String _getRoleText(String role) {
     switch (role.toLowerCase()) {
       case 'admin':
@@ -479,6 +494,7 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
         return role;
     }
   }
+
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
@@ -492,6 +508,7 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
       return 'Az önce';
     }
   }
+
   Future<void> _deleteMessage(String messageId) async {
     try {
       await FirebaseFirestore.instance
@@ -538,9 +555,3 @@ class _MessagesManagementScreenState extends State<MessagesManagementScreen> {
     }
   }
 }
-
-
-
- Again
-
-

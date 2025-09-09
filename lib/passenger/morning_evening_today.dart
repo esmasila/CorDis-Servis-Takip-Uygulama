@@ -4,11 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../service/permission_service.dart';
 import '../service/user_session.dart';
 import '../models/permission_model.dart';
+
 class MorningEveningToday extends StatefulWidget {
   const MorningEveningToday({super.key});
   @override
   State<MorningEveningToday> createState() => _MorningEveningTodayState();
 }
+
 class _MorningEveningTodayState extends State<MorningEveningToday> {
   final user = FirebaseAuth.instance.currentUser!;
   String? userName;
@@ -20,6 +22,7 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
     super.initState();
     _loadUserName();
   }
+
   Future<void> _loadUserName() async {
     final doc = await FirebaseFirestore.instance
         .collection('users')
@@ -29,6 +32,7 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
       userName = doc.data()?['name'] ?? 'Yolcu';
     });
   }
+
   Future<void> _createPermission(PermissionType type) async {
     if (userName == null) return;
     DateTime startDate;
@@ -85,6 +89,7 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
       }
     }
   }
+
   Future<void> _selectVacationDates() async {
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
@@ -101,6 +106,7 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
       });
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -364,6 +370,7 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
       ),
     );
   }
+
   Future<void> _cancelPermission(String permissionId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -400,6 +407,7 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
       }
     }
   }
+
   IconData _getPermissionIcon(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -414,6 +422,7 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
         return Icons.beach_access;
     }
   }
+
   Color _getPermissionColor(PermissionType type) {
     switch (type) {
       case PermissionType.morningToday:
@@ -428,6 +437,7 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
         return Color(0xFF6366F1);
     }
   }
+
   String _getPermissionDateText(PermissionModel permission) {
     if (permission.type == PermissionType.vacation) {
       return '${_formatDate(permission.startDate)} - ${_formatDate(permission.endDate!)}';
@@ -435,10 +445,12 @@ class _MorningEveningTodayState extends State<MorningEveningToday> {
       return _formatDate(permission.startDate);
     }
   }
+
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
 }
+
 class _PermissionButton extends StatelessWidget {
   final String text;
   final IconData icon;
@@ -467,9 +479,3 @@ class _PermissionButton extends StatelessWidget {
     );
   }
 }
-
-
-
- Again
-
-

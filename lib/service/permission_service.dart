@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/permission_model.dart';
+
 class PermissionService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static Future<String?> createPermission({
@@ -29,6 +30,7 @@ class PermissionService {
       return 'İzin oluşturulurken hata: $e';
     }
   }
+
   static Stream<List<PermissionModel>> getUserPermissions(String userId) {
     return _firestore
         .collection('permissions')
@@ -40,6 +42,7 @@ class PermissionService {
             .map((doc) => PermissionModel.fromMap(doc.id, doc.data()))
             .toList());
   }
+
   static Stream<List<PermissionModel>> getDriverPassengerPermissions(
       String driverId) {
     return _firestore
@@ -52,6 +55,7 @@ class PermissionService {
             .map((doc) => PermissionModel.fromMap(doc.id, doc.data()))
             .toList());
   }
+
   static Stream<List<PermissionModel>> getDriverPermissions(String driverId) {
     return _firestore
         .collection('permissions')
@@ -62,6 +66,7 @@ class PermissionService {
             .map((doc) => PermissionModel.fromMap(doc.id, doc.data()))
             .toList());
   }
+
   static Future<String?> cancelPermission(String permissionId) async {
     try {
       await _firestore
@@ -73,6 +78,7 @@ class PermissionService {
       return 'İzin iptal edilirken hata: $e';
     }
   }
+
   static Future<List<PermissionModel>> checkUserPermissionsForDate(
     String userId,
     DateTime date,
@@ -91,6 +97,7 @@ class PermissionService {
       return [];
     }
   }
+
   static Stream<List<PermissionModel>> getTodayActivePermissions(
       String? driverId) {
     Query query =
@@ -110,6 +117,7 @@ class PermissionService {
           .toList();
     });
   }
+
   static Future<List<PermissionModel>> getTodayActivePermissionsFuture(
       String? driverId) async {
     try {
@@ -130,6 +138,7 @@ class PermissionService {
       return [];
     }
   }
+
   static Future<String?> createPermissionWithRouteUpdate({
     required String userId,
     required String userName,
@@ -157,6 +166,7 @@ class PermissionService {
       return 'İzin oluşturma ve rota güncelleme hatası: $e';
     }
   }
+
   static Future<void> cancelPermissionWithRouteUpdate(
       String permissionId, String userId, String? driverId) async {
     try {
@@ -167,6 +177,7 @@ class PermissionService {
       print('❌ İzin iptal ve rota güncelleme hatası: $e');
     }
   }
+
   static Future<void> _triggerRouteUpdate(
       String userId, String? driverId) async {
     if (driverId == null || driverId.isEmpty) return;
@@ -180,6 +191,7 @@ class PermissionService {
       print('❌ Dinamik rota güncelleme hatası: $e');
     }
   }
+
   static Future<void> _deactivatePassengerStopTemporarily(String userId) async {
     try {
       final stopsQuery = await _firestore
@@ -199,10 +211,12 @@ class PermissionService {
       print('❌ Durak deaktif etme hatası: $e');
     }
   }
+
   static Future<void> deactivatePassengerStopForPermission(
       String userId) async {
     await _deactivatePassengerStopTemporarily(userId);
   }
+
   static Future<void> _notifyDriverForRouteRefresh(String driverId) async {
     try {
       await _firestore.collection('driver_notifications').add({
@@ -234,6 +248,7 @@ class PermissionService {
       print('❌ Şoför bildirim hatası: $e');
     }
   }
+
   static Future<void> _refreshDriverRoute(String driverId) async {
     try {
       await _firestore.collection('route_refresh_triggers').add({
@@ -263,6 +278,7 @@ class PermissionService {
       print('❌ Rota yenileme tetikleme hatası: $e');
     }
   }
+
   static Future<void> reactivatePassengerStop(String userId) async {
     try {
       final stopsQuery = await _firestore
@@ -282,6 +298,7 @@ class PermissionService {
       print('❌ Durak yeniden aktif etme hatası: $e');
     }
   }
+
   static Future<String?> generateRouteForDateRange({
     required String driverId,
     required String regionId,
@@ -308,6 +325,7 @@ class PermissionService {
       return 'Rota oluşturma hatası: $e';
     }
   }
+
   static Future<void> _generateRouteForSpecificDate(
     String driverId,
     String regionId,
@@ -331,9 +349,3 @@ class PermissionService {
     }
   }
 }
-
-
-
- Again
-
-

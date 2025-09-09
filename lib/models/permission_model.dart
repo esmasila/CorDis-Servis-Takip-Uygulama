@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum PermissionType {
   morningToday,
   eveningToday,
@@ -7,6 +8,7 @@ enum PermissionType {
   allTomorrow,
   vacation,
 }
+
 class PermissionModel {
   final String id;
   final String userId;
@@ -62,6 +64,7 @@ class PermissionModel {
       'driverId': driverId,
     };
   }
+
   String get typeDisplayName {
     switch (type) {
       case PermissionType.morningToday:
@@ -78,6 +81,7 @@ class PermissionModel {
         return 'Tatil';
     }
   }
+
   String? get description => reason;
   bool isValidForDate(DateTime date) {
     if (!isActive) return false;
@@ -93,18 +97,14 @@ class PermissionModel {
         return _isSameDay(date, tomorrow);
       case PermissionType.vacation:
         return date.isAfter(startDate.subtract(const Duration(days: 1))) &&
-               (endDate == null || date.isBefore(endDate!.add(const Duration(days: 1))));
+            (endDate == null ||
+                date.isBefore(endDate!.add(const Duration(days: 1))));
     }
   }
+
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
-           date1.month == date2.month &&
-           date1.day == date2.day;
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 }
-
-
-
- Again
-
-
