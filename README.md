@@ -215,5 +215,5 @@ lib/
 - [ ] **v2.4**: Blockchain tabanlı güvenlik
 
 
-// Updated
+
 
