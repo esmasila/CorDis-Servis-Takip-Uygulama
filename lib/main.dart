@@ -611,9 +611,3 @@ class _LoadingScreen extends StatelessWidget {
     );
   }
 }
-
-// Updated
-
-
-
-
