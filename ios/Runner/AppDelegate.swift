@@ -13,7 +13,8 @@ import GoogleMaps   // <-- Google Maps import
     // Firebase başlat
     FirebaseApp.configure()
     
-    // Google Maps iOS API Key (sadece iOS için geçerli olan key'i buraya koy)
+    // Google Maps iOS API Key - will be loaded from environment variables
+    // This should be replaced during build process
     GMSServices.provideAPIKey("AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ")
     
     GeneratedPluginRegistrant.register(with: self)

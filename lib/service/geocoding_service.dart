@@ -3,12 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'unified_route_optimization_service.dart';
+import '../services/config_service.dart';
 
 class GeocodingService {
-  static const String _apiKey = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-    defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
-  );
   static const String _baseUrl =
       'https://maps.googleapis.com/maps/api/geocode/json';
   static const String _directionsUrl =
@@ -21,7 +18,7 @@ class GeocodingService {
         return null;
       }
       final url =
-          '$_baseUrl?address=${Uri.encodeComponent(address)}&region=tr&key=$_apiKey';
+          '$_baseUrl?address=${Uri.encodeComponent(address)}&region=tr&key=${ConfigService.googleMapsApiKey}';
       final response = await http.get(Uri.parse(url));
       print('[GeocodingService] API isteği: $url');
       print('[GeocodingService] Yanıt kodu: ${response.statusCode}');
@@ -58,7 +55,7 @@ class GeocodingService {
         return null;
       }
       final url =
-          '$_baseUrl?latlng=$latitude,$longitude&language=tr&key=$_apiKey';
+          '$_baseUrl?latlng=$latitude,$longitude&language=tr&key=${ConfigService.googleMapsApiKey}';
       final response = await http.get(Uri.parse(url));
       print(
           '[GeocodingService] Reverse geocoding isteği: $latitude, $longitude');
@@ -101,7 +98,7 @@ class GeocodingService {
             '&waypoints=${optimizeWaypoints ? 'optimize:true|' : ''}${waypointsList.join('|')}';
       }
       final url =
-          '$_directionsUrl?origin=$originStr&destination=$destinationStr$waypointsStr&key=$_apiKey';
+          '$_directionsUrl?origin=$originStr&destination=$destinationStr$waypointsStr&key=${ConfigService.googleMapsApiKey}';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -140,23 +137,29 @@ class GeocodingService {
   }) async {
     try {
       if (stops.isEmpty) return stops;
-      
-      print('[GeocodingService] Unified Route Optimization Service ile ${stops.length} durak optimize ediliyor...');
-      
-      final optimizedStops = await UnifiedRouteOptimizationService.optimizeRoute(
+
+      print(
+          '[GeocodingService] Unified Route Optimization Service ile ${stops.length} durak optimize ediliyor...');
+
+      final optimizedStops =
+          await UnifiedRouteOptimizationService.optimizeRoute(
         driverLocation: driverLocation,
         stops: stops,
         useGoogleApi: true,
       );
-      
+
       if (optimizedStops.isNotEmpty) {
-        final stats = UnifiedRouteOptimizationService.getRouteStatistics(optimizedStops);
-        print('[GeocodingService] ✅ ${optimizedStops.length} durak Unified Service ile optimize edildi');
-        print('[GeocodingService] 📊 Optimizasyon: ${stats['optimizationMethod']} - ${stats['totalDistance']?.toStringAsFixed(2)} km');
+        final stats =
+            UnifiedRouteOptimizationService.getRouteStatistics(optimizedStops);
+        print(
+            '[GeocodingService] ✅ ${optimizedStops.length} durak Unified Service ile optimize edildi');
+        print(
+            '[GeocodingService] 📊 Optimizasyon: ${stats['optimizationMethod']} - ${stats['totalDistance']?.toStringAsFixed(2)} km');
         return optimizedStops;
       }
-      
-      print('[GeocodingService] ⚠️ Unified service başarısız, orijinal algoritma kullanılıyor');
+
+      print(
+          '[GeocodingService] ⚠️ Unified service başarısız, orijinal algoritma kullanılıyor');
       final sortedStops = List<Map<String, dynamic>>.from(stops);
       sortedStops.sort((a, b) {
         final da = _calculateDistance(
@@ -289,11 +292,11 @@ class GeocodingService {
           '${lastWaypoint['latitude']},${lastWaypoint['longitude']}';
     }
     if (waypointsStr.isNotEmpty && destinationStr.isNotEmpty) {
-      return 'https://maps.googleapis.com/maps/api/directions/json?origin=$originStr&destination=$destinationStr&waypoints=$waypointsStr&key=$_apiKey';
+      return 'https://maps.googleapis.com/maps/api/directions/json?origin=$originStr&destination=$destinationStr&waypoints=$waypointsStr&key=${ConfigService.googleMapsApiKey}';
     } else if (destinationStr.isNotEmpty) {
-      return 'https://maps.googleapis.com/maps/api/directions/json?origin=$originStr&destination=$destinationStr&key=$_apiKey';
+      return 'https://maps.googleapis.com/maps/api/directions/json?origin=$originStr&destination=$destinationStr&key=${ConfigService.googleMapsApiKey}';
     }
-    return 'https://maps.googleapis.com/maps/api/directions/json?origin=$originStr&key=$_apiKey';
+    return 'https://maps.googleapis.com/maps/api/directions/json?origin=$originStr&key=${ConfigService.googleMapsApiKey}';
   }
 
   static List<Map<String, double>> decodePolyline(String polyline) {

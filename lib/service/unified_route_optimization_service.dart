@@ -1,16 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import '../models/stop_model.dart';
+import '../services/config_service.dart';
 
 class UnifiedRouteOptimizationService {
-  static const String _googleMapsApiKey = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-    defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
-  );
-
   static const double _earthRadius = 6371000;
 
   static final Map<String, List<Map<String, dynamic>>> _routeCache = {};
@@ -236,7 +230,7 @@ class UnifiedRouteOptimizationService {
               '?origin=$origin'
               '&destination=$destination'
               '&waypoints=optimize:true|$waypoints'
-              '&key=$_googleMapsApiKey'
+              '&key=${ConfigService.googleMapsApiKey}'
               '&mode=driving'
               '&language=tr'
               '&units=metric'

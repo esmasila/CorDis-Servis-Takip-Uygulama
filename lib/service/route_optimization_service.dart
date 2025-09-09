@@ -5,14 +5,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../models/stop_model.dart';
 import 'unified_route_optimization_service.dart';
+import '../services/config_service.dart';
 
 class RouteOptimizationService {
   static const String _firebaseFunctionsUrl =
       'https://us-central1-servis-takip-uygulama.cloudfunctions.net';
-  static const String _googleMapsApiKey = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-    defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
-  );
   static const double _earthRadius = 6371000;
   Future<Map<String, dynamic>?> optimizeRouteWithFirebase(
     Position currentPosition,
@@ -265,7 +262,7 @@ class RouteOptimizationService {
   ) async {
     try {
       final url =
-          'https://maps.googleapis.com/maps/api/directions/json?origin=$originLat,$originLng&destination=$destLat,$destLng&key=$_googleMapsApiKey&mode=driving&language=tr';
+          'https://maps.googleapis.com/maps/api/directions/json?origin=$originLat,$originLng&destination=$destLat,$destLng&key=${ConfigService.googleMapsApiKey}&mode=driving&language=tr';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

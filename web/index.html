@@ -19,6 +19,31 @@
   <title>servis_takip_uygulama</title>
   <link rel="manifest" href="manifest.json">
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDU9DVmj9Et8DmJVeEahvPX2jlgm7e3Ipw",
+      authDomain: "servis-takip-uygulama.firebaseapp.com",
+      projectId: "servis-takip-uygulama",
+      storageBucket: "servis-takip-uygulama.firebasestorage.app",
+      messagingSenderId: "283736871966",
+      appId: "1:283736871966:web:78e0052aea544581800a0f",
+      measurementId: "G-BD67ZE7ETF"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Google Maps API key
+    window.GOOGLE_MAPS_API_KEY = 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ';
+  </script>
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ&v=weekly&libraries=places"></script>
 </head>

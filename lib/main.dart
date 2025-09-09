@@ -8,6 +8,7 @@ import 'package:workmanager/workmanager.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'services/config_service.dart';
 import 'widget/snackbar.dart';
 import 'widget/common_loading_screen.dart';
 import 'view/login_screen.dart';
@@ -25,15 +26,31 @@ import 'service/theme_service.dart';
 import 'service/automatic_permission_service.dart';
 import 'service/proximity_notification_service.dart';
 import 'providers/theme_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
+    await ConfigService.initialize();
+    print("✅ Konfigürasyon servisi başlatıldı");
+
+    // Firebase'i her platformda başlat
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      print("✅ Firebase başlatıldı");
+    } catch (e) {
+      print("⚠️ Firebase başlatma hatası: $e");
+      // Web platformunda Firebase zaten HTML'de başlatıldıysa devam et
+      if (kIsWeb) {
+        print("✅ Firebase web'de HTML'den başlatıldı");
+      } else {
+        rethrow;
+      }
+    }
+
     await CacheService.initialize();
     await ThemeService.instance.initialize();
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    print("✅ Firebase başlatıldı");
     await initializeDateFormatting('tr_TR', null);
     print("✅ Tarih formatı başlatıldı");
     print("🚀 Uygulama başlatılıyor...");
@@ -89,14 +106,17 @@ void main() async {
     }
   });
 }
+
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((taskName, inputData) async {
     try {
       print('📱 Background task çalışıyor: $taskName');
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      if (!kIsWeb) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
       switch (taskName) {
         case 'backgroundLocationTask':
         case 'driverLocationTask':
@@ -143,11 +163,13 @@ void callbackDispatcher() {
     }
   });
 }
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
   @override
   State<MyApp> createState() => _MyAppState();
 }
+
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
@@ -158,15 +180,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
     ThemeService.instance.addListener(_onThemeChanged);
   }
+
   void _onThemeChanged() {
     if (mounted) setState(() {});
   }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     ThemeService.instance.removeListener(_onThemeChanged);
     super.dispose();
   }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -193,6 +218,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         break;
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -299,63 +325,69 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
   }
 }
+
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const _LoadingScreen(message: 'Kimlik doğrulanıyor...');
-        }
-        final user = authSnapshot.data;
-        if (user == null) {
-          return const LoginScreen();
-        }
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get(),
-          builder: (context, userSnap) {
-            if (userSnap.connectionState != ConnectionState.done) {
-              return const _LoadingScreen(
-                message: 'Kullanıcı bilgileri yükleniyor...',
+    try {
+      return StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, authSnapshot) {
+          if (authSnapshot.connectionState == ConnectionState.waiting) {
+            return const _LoadingScreen(message: 'Kimlik doğrulanıyor...');
+          }
+          final user = authSnapshot.data;
+          if (user == null) {
+            return const LoginScreen();
+          }
+          return FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get(),
+            builder: (context, userSnap) {
+              if (userSnap.connectionState != ConnectionState.done) {
+                return const _LoadingScreen(
+                  message: 'Kullanıcı bilgileri yükleniyor...',
+                );
+              }
+              if (!userSnap.hasData || !userSnap.data!.exists) {
+                print('⚠️ Kullanıcı verisi bulunamadı, çıkış yapılıyor');
+                return _signOutAndReturn();
+              }
+              final data = userSnap.data!.data() as Map<String, dynamic>;
+              final role = data['role'] ?? '';
+              UserSession.userId = user.uid;
+              UserSession.userEmail = user.email;
+              UserSession.userName = data['name'];
+              UserSession.userRole = role;
+              UserSession.photoUrl = data['photoUrl'];
+              return FutureBuilder<Widget>(
+                future: _buildRoleScreen(user.uid, role, data),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return _LoadingScreen(
+                      message: '$role ekranı hazırlanıyor...',
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    print('❌ Ekran yükleme hatası: ${snapshot.error}');
+                    return _signOutAndReturn();
+                  }
+                  return snapshot.data ?? _signOutAndReturn();
+                },
               );
-            }
-            if (!userSnap.hasData || !userSnap.data!.exists) {
-              print('⚠️ Kullanıcı verisi bulunamadı, çıkış yapılıyor');
-              return _signOutAndReturn();
-            }
-            final data = userSnap.data!.data() as Map<String, dynamic>;
-            final role = data['role'] ?? '';
-            UserSession.userId = user.uid;
-            UserSession.userEmail = user.email;
-            UserSession.userName = data['name'];
-            UserSession.userRole = role;
-            UserSession.photoUrl =
-                data['photoUrl'];
-            return FutureBuilder<Widget>(
-              future: _buildRoleScreen(user.uid, role, data),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return _LoadingScreen(
-                    message: '$role ekranı hazırlanıyor...',
-                  );
-                }
-                if (snapshot.hasError) {
-                  print('❌ Ekran yükleme hatası: ${snapshot.error}');
-                  return _signOutAndReturn();
-                }
-                return snapshot.data ?? _signOutAndReturn();
-              },
-            );
-          },
-        );
-      },
-    );
+            },
+          );
+        },
+      );
+    } catch (e) {
+      print('❌ AuthWrapper Firebase hatası: $e');
+      return const LoginScreen();
+    }
   }
+
   Future<Widget> _buildRoleScreen(
     String uid,
     String role,
@@ -396,6 +428,7 @@ class AuthWrapper extends StatelessWidget {
         } catch (_) {}
         return 'Bölge Bilgisi';
       }
+
       Future<void> setRegionInfo(String? regionId) async {
         if (regionId != null && regionId.isNotEmpty) {
           UserSession.regionId = regionId;
@@ -430,6 +463,7 @@ class AuthWrapper extends StatelessWidget {
           }
         }
       }
+
       switch (role) {
         case 'Admin':
           print('✅ Admin ekranı yükleniyor');
@@ -556,12 +590,14 @@ class AuthWrapper extends StatelessWidget {
       return _signOutAndReturn();
     }
   }
+
   Widget _signOutAndReturn() {
     FirebaseAuth.instance.signOut();
     UserSession.clear();
     return const LoginScreen();
   }
 }
+
 class _LoadingScreen extends StatelessWidget {
   final String message;
   const _LoadingScreen({this.message = 'Yükleniyor...'});

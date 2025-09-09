@@ -5,14 +5,11 @@ import 'dart:math';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'geocoding_service.dart';
+import '../services/config_service.dart';
 
 class AutoStopService {
   static const double _proximityThreshold = 100.0;
   static const double _mainRoadSearchRadius = 1000.0;
-  static const String _googleMapsApiKey = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-    defaultValue: 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ',
-  );
   static Future<void> processPassengerAddress({
     required String passengerId,
     required String passengerName,
@@ -288,13 +285,15 @@ class AutoStopService {
     double longitude,
   ) async {
     try {
-      if (_googleMapsApiKey.isEmpty) {
+      try {
+        ConfigService.googleMapsApiKey;
+      } catch (e) {
         print(
             'Google Maps API anahtarı ayarlanmamış, varsayılan kontrol yapılıyor');
         return {'isMainRoad': false};
       }
       final url =
-          'https://roads.googleapis.com/v1/snapToRoads?points=$latitude,$longitude&key=$_googleMapsApiKey';
+          'https://roads.googleapis.com/v1/snapToRoads?points=$latitude,$longitude&key=${ConfigService.googleMapsApiKey}';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -316,11 +315,13 @@ class AutoStopService {
   static Future<bool> _isMainRoadByWidth(
       double latitude, double longitude) async {
     try {
-      if (_googleMapsApiKey.isEmpty) {
+      try {
+        ConfigService.googleMapsApiKey;
+      } catch (e) {
         return false;
       }
       final url =
-          'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$latitude,$longitude&radius=50&type=route&key=$_googleMapsApiKey';
+          'https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$latitude,$longitude&radius=50&type=route&key=${ConfigService.googleMapsApiKey}';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -344,11 +345,13 @@ class AutoStopService {
 
   static Future<Map<String, dynamic>> _getPlaceDetails(String placeId) async {
     try {
-      if (_googleMapsApiKey.isEmpty) {
+      try {
+        ConfigService.googleMapsApiKey;
+      } catch (e) {
         return {};
       }
       final url =
-          'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&fields=name,types,address_components,geometry&key=$_googleMapsApiKey';
+          'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&fields=name,types,address_components,geometry&key=${ConfigService.googleMapsApiKey}';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

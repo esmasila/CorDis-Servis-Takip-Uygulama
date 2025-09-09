@@ -19,7 +19,8 @@ import '../service/unified_route_optimization_service.dart';
 import '../models/stop_model.dart';
 import '../utils/app_colors.dart';
 
-const String kGoogleApiKey = 'AIzaSyC628CANMpJ_YjsKGg4ASzAvESQ2f3MJGQ';
+import '../services/config_service.dart';
+
 const int kDirectionsDebounceMs = 1500;
 
 class EnhancedServiceTracking extends StatefulWidget {
@@ -84,8 +85,15 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
   List<LatLng> _recentDriverPositions = [];
   static const int _maxRecentPositions = 5;
   static const Duration _movementAnalysisWindow = Duration(minutes: 2);
-  bool get _isApiKeyValid =>
-      kGoogleApiKey.isNotEmpty && !kGoogleApiKey.contains('YOUR_');
+  bool get _isApiKeyValid {
+    try {
+      final key = ConfigService.googleMapsApiKey;
+      return key.isNotEmpty && !key.contains('YOUR_');
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -932,7 +940,7 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
       LatLng origin, LatLng destination) async {
     try {
       final url = Uri.parse(
-          'https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=${kGoogleApiKey}');
+          'https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=${ConfigService.googleMapsApiKey}');
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1294,7 +1302,8 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         }
 
         if (_isApiKeyValid) {
-          final polylinePoints = PolylinePoints(apiKey: kGoogleApiKey);
+          final polylinePoints =
+              PolylinePoints(apiKey: ConfigService.googleMapsApiKey);
           final result = await polylinePoints.getRouteBetweenCoordinates(
             request: PolylineRequest(
               origin: origin,
@@ -1438,7 +1447,8 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
     try {
       if (_isApiKeyValid) {
         debugPrint('🚀 Google Directions API ile rota çiziliyor...');
-        final polylinePoints = PolylinePoints(apiKey: kGoogleApiKey);
+        final polylinePoints =
+            PolylinePoints(apiKey: ConfigService.googleMapsApiKey);
         final result = await polylinePoints.getRouteBetweenCoordinates(
           request: PolylineRequest(
             origin:
@@ -1738,12 +1748,12 @@ class _EnhancedServiceTrackingState extends State<EnhancedServiceTracking> {
         'units': 'metric',
         'language': 'tr',
         'region': 'tr',
-        'key': kGoogleApiKey,
+        'key': ConfigService.googleMapsApiKey,
       },
     );
 
     debugPrint(
-        '🔗 API URL: ${uri.toString().replaceAll(kGoogleApiKey, '***')}');
+        '🔗 API URL: ${uri.toString().replaceAll(ConfigService.googleMapsApiKey, '***')}');
 
     try {
       final resp = await http.get(uri).timeout(const Duration(seconds: 12));
